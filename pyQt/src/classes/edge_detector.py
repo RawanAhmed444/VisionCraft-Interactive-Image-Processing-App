@@ -1,134 +1,77 @@
-import numpy as np
 import cv2
-from src.utils import convert_to_grayscale, convolve, magnitude
-from src.functions.edge_functions import smooth_image, compute_sobel_gradients, non_maximum_suppression, apply_double_thresholding, apply_hysteresis
+from functions.edge_functions import (
+    sobel_edge_detection,
+    canny_edge_detection,
+    prewitt_edge_detection,
+    roberts_edge_detection
+)
+from utils import convert_to_grayscale
 
-class EdgeProcessor:
+class EdgeDetector:
     """
-    Processes edges in an image using modular functions for different methods:
-    Sobel, Prewitt, Roberts, and Canny.
+    A class to perform edge detection using various algorithms.
+    It uses modular functions from edge_functions for actual processing.
     """
     def __init__(self, image):
         """
-        Initializes the processor with an image.
+        Initializes the EdgeDetector with an input image.
         
-        :param image: Input image in BGR or grayscale.
+        :param image: Input image in BGR or grayscale format.
         """
-        # Convert to grayscale if needed
+        # Convert to grayscale if necessary
         self.image = convert_to_grayscale(image)
-        self.filtered_image = None  # For smoothed image
-        self.edge_map = None
+        # Dictionary to store edge maps computed by various methods
+        self.edge_maps = {}
 
-    def apply_filter(self, filter_type="gaussian", kernel_size=5, sigma=1.4):
+    def detect_sobel(self):
         """
-        Applies a smoothing filter to the image.
+        Detects edges using the Sobel operator.
         
-        :param filter_type: Currently supports only 'gaussian'.
-        :param kernel_size: Size of the kernel.
-        :param sigma: Standard deviation for the Gaussian filter.
+        :return: Edge map (normalized to 0-255) produced by Sobel detection.
         """
-        if filter_type == "gaussian":
-            self.filtered_image = smooth_image(self.image, kernel_size, sigma)
-        else:
-            raise ValueError("Unsupported filter type. Use 'gaussian'.")
-        return self.filtered_image
+        result = sobel_edge_detection(self.image)
+        self.edge_maps['sobel'] = result
+        return result
 
-    def sobel_edge_detection(self):
+    def detect_canny(self, low_threshold=None, high_threshold=None, max_edge_val=255, min_edge_val=0):
         """
-        Applies Sobel edge detection.
+        Detects edges using the Canny edge detector.
         
-        :return: Edge map (normalized to 0-255).
-        """
-        if self.filtered_image is None:
-            # Optionally, apply default Gaussian smoothing
-            self.apply_filter(filter_type="gaussian", kernel_size=3, sigma=1.0)
-        
-        # Compute Sobel gradients using our modular function
-        Gx, Gy = compute_sobel_gradients(self.filtered_image)
-        
-        # Compute gradient magnitude
-        G = magnitude(Gx, Gy)
-        
-        # Normalize for visualization
-        self.edge_map = np.uint8(255 * G / np.max(G))
-        return self.edge_map
-
-    def canny_edge_detection(self, low_threshold=None, high_threshold=None):
-        """
-        Full Canny edge detection pipeline:
-          1. Gaussian smoothing
-          2. Compute gradients (using Sobel kernels)
-          3. Compute gradient magnitude and angle
-          4. Non-maximum suppression
-          5. Double thresholding and hysteresis
-          
         :param low_threshold: Lower threshold for double thresholding.
         :param high_threshold: Higher threshold for double thresholding.
-        :return: Final edge map.
+        :param max_edge_val: Maximum edge value (default 255).
+        :param min_edge_val: Minimum edge value (default 0).
+        :return: Final edge map from Canny detection.
         """
-        # Step 1: Gaussian smoothing (if not already filtered)
-        smooth = self.filtered_image if self.filtered_image is not None else smooth_image(self.image, 5, 1.4)
-        
-        # Step 2: Compute gradients
-        Gx, Gy = compute_sobel_gradients(smooth)
-        G = magnitude(Gx, Gy)
-        
-        # Step 3: Compute gradient direction
-        theta = np.arctan2(Gy, Gx) * 180 / np.pi
-        theta[theta < 0] += 180  # Normalize angles to [0, 180]
-        
-        # Step 4: Non-Maximum Suppression
-        nms = non_maximum_suppression(G, theta)
-        
-        # Step 5: Double Thresholding (set thresholds relative to max if not provided)
-        max_val = np.max(nms)
-        low_threshold = low_threshold or (max_val * 0.1)
-        high_threshold = high_threshold or (max_val * 0.5)
-        strong_edges, weak_edges = apply_double_thresholding(nms, low_threshold, high_threshold)
-        
-        # Step 6: Hysteresis: link weak edges to strong edges
-        self.edge_map = apply_hysteresis(strong_edges, weak_edges)
-        
-        return self.edge_map
+        result = canny_edge_detection(self.image, low_threshold, high_threshold, max_edge_val, min_edge_val)
+        self.edge_maps['canny'] = result
+        return result
 
-    def prewitt_edge_detection(self):
+    def detect_prewitt(self):
         """
-        Applies Prewitt edge detection.
+        Detects edges using the Prewitt operator.
         
-        :return: Edge map.
+        :return: Edge map produced by Prewitt detection.
         """
-        # Define Prewitt kernels
-        kernel_x = np.array([[-1, 0, 1],
-                             [-1, 0, 1],
-                             [-1, 0, 1]])
-        kernel_y = np.array([[-1, -1, -1],
-                             [ 0,  0,  0],
-                             [ 1,  1,  1]])
-        
-        Gx = convolve(self.image, kernel_x)
-        Gy = convolve(self.image, kernel_y)
-        self.edge_map = magnitude(Gx, Gy)
-        return self.edge_map
+        result = prewitt_edge_detection(self.image)
+        self.edge_maps['prewitt'] = result
+        return result
 
-    def roberts_edge_detection(self):
+    def detect_roberts(self):
         """
-        Applies Roberts edge detection.
+        Detects edges using the Roberts operator.
         
-        :return: Edge map.
+        :return: Edge map produced by Roberts detection.
         """
-        # Define Roberts kernels
-        kernel_x = np.array([[1, 0],
-                             [0, -1]])
-        kernel_y = np.array([[0, 1],
-                             [-1, 0]])
-        
-        Gx = convolve(self.image, kernel_x)
-        Gy = convolve(self.image, kernel_y)
-        self.edge_map = magnitude(Gx, Gy)
-        return self.edge_map
+        result = roberts_edge_detection(self.image)
+        self.edge_maps['roberts'] = result
+        return result
 
-    def get_edge_map(self):
-        """Returns the computed edge map."""
-        if self.edge_map is None:
-            raise ValueError("Edge map not computed. Run an edge detection method first.")
-        return self.edge_map
+    def get_edge_map(self, method):
+        """
+        Retrieves the edge map for a given method.
+        
+        :param method: String indicating the method ('sobel', 'canny', 'prewitt', 'roberts').
+        :return: Edge map if computed, otherwise None.
+        """
+        return self.edge_maps.get(method, None)

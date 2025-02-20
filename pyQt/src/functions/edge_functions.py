@@ -1,12 +1,9 @@
 import numpy as np 
-from utils import convolve, magnitude
+from utils import convolve, magnitude, convert_to_grayscale
 from thresholding_functions import globalthresholding
 from noise_functions import apply_gaussian_filter
 import cv2 
 import matplotlib.pyplot as plt 
-
-
-
 
 
 
@@ -117,40 +114,92 @@ def apply_hysteresis(strong_edges, weak_edges):
     return final_edges
 
 
-# Sobel Edge Detection
+
+
 def sobel_edge_detection(image):
-    # Convert to grayscale as sobel operator works on single-channel images (not coloed images)
-    gray_image  = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Apply Gaussian smoothing (optional) to reduce noise
-    blurred_image = apply_gaussian_filter(gray_image, 3, 0)
-
-    # # Sobel operators
-    # Gx = cv2.Sobel(blurred_image, cv2.CV_64F, 1, 0, ksize=3)
-    # Gy = cv2.Sobel(blurred_image, cv2.CV_64F, 0, 1, ksize=3)
-
-    # Define Sobel kernels
-    kernel_x = np.array([[-1, 0, 1],
-                        [-2, 0, 2],
-                        [-1, 0, 1]]) 
-
-    kernel_y = np.array([[-1, -2, -1],
-                        [0, 0, 0],
-                        [1, 2, 1]]) 
-
-    # Apply Sobel kernels
-    Gx = convolve(blurred_image, kernel_x)
-    Gy = convolve(blurred_image, kernel_y)
-
-    # Compute gradient magnitude
+    """
+    Detects edges using the Sobel operator.
+    
+    :param image: Input BGR or grayscale image.
+    :return: Sobel edge map (normalized to 0-255).
+    """
+    gray = convert_to_grayscale(image)
+    # Optional Gaussian smoothing before gradient calculation:
+    blurred = smooth_image(gray, kernel_size=3, sigma=1.0)
+    Gx, Gy = compute_sobel_gradients(blurred)
     G = magnitude(Gx, Gy)
+    return np.uint8(255 * (G / np.max(G)))
 
-    # Normalize to range 0-255 for better visualization
-    Gx = np.uint8(255 * np.abs(Gx) / np.max(Gx))
-    Gy = np.uint8(255 * np.abs(Gy) / np.max(Gy))
-    # G = np.uint8(255 * np.abs(G) / np.max(G))
 
-    return G 
+def prewitt_edge_detection(image):
+    """
+    Detects edges using the Prewitt operator.
+    
+    :param image: Input BGR or grayscale image.
+    :return: Prewitt edge map.
+    """
+    gray = convert_to_grayscale(image)
+    kernel_x = np.array([[-1, 0, 1],
+                         [-1, 0, 1],
+                         [-1, 0, 1]])
+    kernel_y = np.array([[-1, -1, -1],
+                         [ 0,  0,  0],
+                         [ 1,  1,  1]])
+    Gx = convolve(gray, kernel_x)
+    Gy = convolve(gray, kernel_y)
+    
+    Gx = np.float32(Gx)
+    Gy = np.float32(Gy)
+    
+    G = np.uint8(magnitude(Gx, Gy))
+    G = globalthresholding(G, 50, 255)
+    return G
+    
+    
+def roberts_edge_detection(image):
+    """
+    Detects edges using the Roberts operator.
+    
+    :param image: Input BGR or grayscale image.
+    :return: Roberts edge map.
+    """
+    gray = convert_to_grayscale(image)
+    kernel_x = np.array([[1, 0],
+                         [0, -1]])
+    kernel_y = np.array([[0, 1],
+                         [-1, 0]])
+    Gx = convolve(gray, kernel_x)
+    Gy = convolve(gray, kernel_y)
+    return np.int8(magnitude(Gx, Gy))
+
+def canny_edge_detection(image, low_threshold=None, high_threshold=None, max_edge_val=255, min_edge_val=0):
+    """
+    Full Canny edge detection pipeline (from scratch).
+    
+    :param image: Input BGR or grayscale image.
+    :param low_threshold: Lower threshold for double thresholding.
+    :param high_threshold: Higher threshold for double thresholding.
+    :return: Final edge map.
+    """
+    gray = convert_to_grayscale(image)
+    
+    smooth = smooth_image(gray, kernel_size=5, sigma=1.4)
+    
+    Gx, Gy = compute_sobel_gradients(smooth)
+    G = magnitude(Gx, Gy)
+    
+    theta = np.arctan2(Gy, Gx) * (180 / np.pi)
+    theta[theta < 0] += 180
+    
+    nms = non_maximum_suppression(G, theta)
+    
+    max_val = np.max(nms)
+    low_threshold = low_threshold if low_threshold is not None else max_val * 0.1
+    high_threshold = high_threshold if high_threshold is not None else max_val * 0.5
+    strong_edges, weak_edges = apply_double_thresholding(nms, low_threshold, high_threshold, max_edge_val, min_edge_val)
+    
+    final_edges = apply_hysteresis(strong_edges, weak_edges)
+    return np.int8(final_edges)
 
 # Canny Edge Detection
 def canny_edge_detection(img, low_threshold=None, high_threshold=None):
@@ -258,53 +307,52 @@ def canny_edge_detection(img, low_threshold=None, high_threshold=None):
     return mag
 
 # Prewitt Edge Detection
-def prewitt_edge_detection(image):
-    # Convert the image to grayscale
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# def prewitt_edge_detection(image):
+#     # Convert the image to grayscale
+#     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    # Apply horizontal Prewitt kernel
-    kernel_x = np.array([[-1, 0, 1],
-                         [-1, 0, 1],
-                         [-1, 0, 1]])
-    horizontal_edges = convolve(gray_image, kernel_x)
+#     # Apply horizontal Prewitt kernel
+#     kernel_x = np.array([[-1, 0, 1],
+#                          [-1, 0, 1],
+#                          [-1, 0, 1]])
+#     horizontal_edges = convolve(gray_image, kernel_x)
     
-    # Apply vertical Prewitt kernel
-    kernel_y = np.array([[-1, -1, -1],
-                         [0, 0, 0],
-                         [1, 1, 1]])
-    vertical_edges = convolve(gray_image, kernel_y)
+#     # Apply vertical Prewitt kernel
+#     kernel_y = np.array([[-1, -1, -1],
+#                          [0, 0, 0],
+#                          [1, 1, 1]])
+#     vertical_edges = convolve(gray_image, kernel_y)
 
-    # Ensure both arrays have the same data type
-    horizontal_edges = np.float32(horizontal_edges)
-    vertical_edges = np.float32(vertical_edges)
+#     # Ensure both arrays have the same data type
+
     
-    # Compute gradient magnitude
-    gradient_magnitude = magnitude(horizontal_edges, vertical_edges)
+#     # Compute gradient magnitude
+#     gradient_magnitude = magnitude(horizontal_edges, vertical_edges)
     
-    # Optional: Apply thresholding to highlight edges
-    thresh_value, edges = globalthresholding(gradient_magnitude, 50, 255)
+#     # Optional: Apply thresholding to highlight edges
+#     thresh_value, edges = globalthresholding(gradient_magnitude, 50, 255)
     
-    return edges
+#     return edges
 
-# Roberts Edge Detection
-def roberts_edge_detection(image):
-    # Convert the image to grayscale
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# # Roberts Edge Detection
+# def roberts_edge_detection(image):
+#     # Convert the image to grayscale
+#     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    roberts_cross_v = np.array( [[1, 0 ], 
-                                [0,-1 ]]) 
+#     roberts_cross_v = np.array( [[1, 0 ], 
+#                                 [0,-1 ]]) 
 
-    roberts_cross_h = np.array( [[ 0, 1 ], 
-                                [ -1, 0 ]]) 
+#     roberts_cross_h = np.array( [[ 0, 1 ], 
+#                                 [ -1, 0 ]]) 
     
-    # Apply the filter (convolution)
-    vertical = convolve(gray_image, roberts_cross_v ) 
-    horizontal = convolve(gray_image, roberts_cross_h ) 
+#     # Apply the filter (convolution)
+#     vertical = convolve(gray_image, roberts_cross_v ) 
+#     horizontal = convolve(gray_image, roberts_cross_h ) 
 
-    # Compute gradient magnitude
-    gradient_mag = magnitude(horizontal, vertical)
+#     # Compute gradient magnitude
+#     gradient_mag = magnitude(horizontal, vertical)
 
-    return gradient_mag
+#     return gradient_mag
 
 def display_edge_detection(image_path, edge_detection_func, title):
     # Read the input image
@@ -331,7 +379,7 @@ def display_edge_detection(image_path, edge_detection_func, title):
     plt.show()
 
 # # Usage examples:
-display_edge_detection(r'E:\Rawan\Projects\Projects\ThirdYearBiomedical\Second Term\Computer Vision\Task1FilteringAndEdgeDetection\Task1-Noisy-Visions-Filtering-and-Edge-Perception\flower.png', sobel_edge_detection, 'Sobel')
+# display_edge_detection(r'E:\Rawan\Projects\Projects\ThirdYearBiomedical\Second Term\Computer Vision\Task1FilteringAndEdgeDetection\Task1-Noisy-Visions-Filtering-and-Edge-Perception\flower.png', sobel_edge_detection, 'Sobel')
 # display_edge_detection(r'E:\Rawan\Projects\Projects\ThirdYearBiomedical\Second Term\Computer Vision\Task1FilteringAndEdgeDetection\Task1-Noisy-Visions-Filtering-and-Edge-Perception\flower.png', canny_edge_detection, 'Canny')
 # display_edge_detection(r'E:\Rawan\Projects\Projects\ThirdYearBiomedical\Second Term\Computer Vision\Task1FilteringAndEdgeDetection\Task1-Noisy-Visions-Filtering-and-Edge-Perception\flower.png', prewitt_edge_detection, 'Prewitt')
 # display_edge_detection(r'E:\Rawan\Projects\Projects\ThirdYearBiomedical\Second Term\Computer Vision\Task1FilteringAndEdgeDetection\Task1-Noisy-Visions-Filtering-and-Edge-Perception\flower.png', roberts_edge_detection, 'Roberts')
