@@ -15,6 +15,9 @@ def convert_to_grayscale(image):
     gray_image = 0.299 * r + 0.587 * g + 0.114 * b
     return gray_image.astype(np.uint8)
 
+def magnitude(x, y):
+    return np.sqrt(x**2 + y**2)
+
 def convolve(img, kernel):
     """
     Applies convolution to an image using a given kernel (without using convolve2d).
@@ -39,3 +42,32 @@ def convolve(img, kernel):
             output[i, j] = np.sum(region * kernel)  # Apply filter
     
     return np.clip(output, 0, 255).astype(np.uint8)  # Normalize output to valid range
+
+def gaussian_kernel(size, sigma=1.0):
+    """
+    Generates a Gaussian kernel.
+
+    :param size: Kernel size (odd number).
+    :param sigma: Standard deviation of the Gaussian distribution.
+    :return: Normalized Gaussian kernel.
+    """
+    ax = np.linspace(-(size // 2), size // 2, size)
+    gauss = np.exp(-0.5 * np.square(ax) / np.square(sigma))
+    kernel = np.outer(gauss, gauss)
+    return kernel / np.sum(kernel)  # Normalize kernel to sum to 1
+
+def cumsum(arr):
+    """
+    Computes the cumulative sum of an array.
+
+    :param arr: List of numbers.
+    :return: List containing the cumulative sum.
+    """
+    cumulative_sum = [0] * len(arr)  # Initialize output array with zeros
+    
+    cumulative_sum[0] = arr[0]  # First element remains the same
+
+    for i in range(1, len(arr)):  # Start from the second element
+        cumulative_sum[i] = cumulative_sum[i - 1] + arr[i]  # Add previous sum
+
+    return cumulative_sum

@@ -11,7 +11,7 @@ def threshold_image(img, T = 128, local = False, kernal= 4, k = 2):
     
     return binary_img
 
-def globalthresholding(image, T = 128):
+def globalthresholding(image, T = 128, value = 255):
     binary_img  = (image > T).astype(np.uint8) * 255
     return binary_img
 

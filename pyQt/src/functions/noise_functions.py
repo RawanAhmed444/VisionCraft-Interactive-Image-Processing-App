@@ -1,5 +1,5 @@
 import numpy as np
-from utils import convolve
+from utils import convolve, gaussian_kernel
 def add_uniform_noise(img, intensity=50):
     """
     Adds uniform noise to an image using only NumPy.
@@ -60,18 +60,7 @@ def apply_average_filter(img, kernel_size=3):
     kernel = np.ones((kernel_size, kernel_size), dtype=np.float32) / (kernel_size ** 2)
     return convolve(img, kernel)
 
-def gaussian_kernel(size, sigma=1.0):
-    """
-    Generates a Gaussian kernel.
 
-    :param size: Kernel size (odd number).
-    :param sigma: Standard deviation of the Gaussian distribution.
-    :return: Normalized Gaussian kernel.
-    """
-    ax = np.linspace(-(size // 2), size // 2, size)
-    gauss = np.exp(-0.5 * np.square(ax) / np.square(sigma))
-    kernel = np.outer(gauss, gauss)
-    return kernel / np.sum(kernel)  # Normalize kernel to sum to 1
 
 def apply_gaussian_filter(img, kernel_size=3, sigma=1.0):
     """
