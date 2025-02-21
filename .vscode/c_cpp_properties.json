@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/Qt/include**",  // Include all headers in the workspace
+                "C:/vcpkg/installed/x64-windows/include",  // Include OpenCV headers
+                "C:/vcpkg/installed/x64-windows/include/opencv4",  // Include OpenCV4 headers
+                "C:/Qt/6.8.2/mingw_64/include",  // Include Qt headers
+                "C:/Qt/6.8.2/mingw_64/include/QtWidgets"  // Include Qt Widgets headers
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.20348.0",
+            "compilerPath": "C:/Qt/Tools/mingw1310_64/bin/g++.exe",  // MinGW compiler path
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"  // Use GCC IntelliSense mode for MinGW
+        }
+    ],
+    "version": 4
+}

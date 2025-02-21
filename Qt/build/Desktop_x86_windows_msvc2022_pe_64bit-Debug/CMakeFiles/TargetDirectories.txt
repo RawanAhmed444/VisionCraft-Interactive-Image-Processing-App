@@ -1,0 +1,8 @@
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/QT.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/edit_cache.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/rebuild_cache.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/list_install_components.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/install.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/install/local.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/QT_autogen_timestamp_deps.dir
+D:/SBME/3rd Year/CV/Tasks/LucidumLab/Task1-Noisy-Visions-Filtering-and-Edge-Perception/QT/build/Desktop_x86_windows_msvc2022_pe_64bit-Debug/CMakeFiles/QT_autogen.dir
