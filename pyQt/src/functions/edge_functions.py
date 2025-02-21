@@ -201,110 +201,112 @@ def canny_edge_detection(image, low_threshold=None, high_threshold=None, max_edg
     final_edges = apply_hysteresis(strong_edges, weak_edges)
     return np.int8(final_edges)
 
-# Canny Edge Detection
-def canny_edge_detection(img, low_threshold=None, high_threshold=None):
-    # Conversion of image to grayscale
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-	# Noise reduction step 
-    img = apply_gaussian_filter(img, 5, 1.4)
+
+# # Canny Edge Detection
+# def canny_edge_detection(img, low_threshold=None, high_threshold=None):
+#     # Conversion of image to grayscale
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# 	# Noise reduction step 
+#     img = apply_gaussian_filter(img, 5, 1.4)
     
-	# # Calculating the gradients 
-    # gx = cv2.Sobel(np.float32(img), cv2.CV_64F, 1, 0, 3) 
-    # gy = cv2.Sobel(np.float32(img), cv2.CV_64F, 0, 1, 3)
+# 	# # Calculating the gradients 
+#     # gx = cv2.Sobel(np.float32(img), cv2.CV_64F, 1, 0, 3) 
+#     # gy = cv2.Sobel(np.float32(img), cv2.CV_64F, 0, 1, 3)
 
-    # Define Sobel kernels
-    kernel_x = np.array([[-1, 0, 1],
-                        [-2, 0, 2],
-                        [-1, 0, 1]]) 
+#     # Define Sobel kernels
+#     kernel_x = np.array([[-1, 0, 1],
+#                         [-2, 0, 2],
+#                         [-1, 0, 1]]) 
 
-    kernel_y = np.array([[-1, -2, -1],
-                        [0, 0, 0],
-                        [1, 2, 1]]) 
+#     kernel_y = np.array([[-1, -2, -1],
+#                         [0, 0, 0],
+#                         [1, 2, 1]]) 
 
-    # Calculating the gradients 
-    Gx = convolve(img, kernel_x)
-    Gy = convolve(img, kernel_y)
+#     # Calculating the gradients 
+#     Gx = convolve(img, kernel_x)
+#     Gy = convolve(img, kernel_y)
 
-	# # Conversion of Cartesian coordinates to polar coordinates
-    # mag, ang = cv2.cartToPolar(Gx, Gy, angleInDegrees = True)
+# 	# # Conversion of Cartesian coordinates to polar coordinates
+#     # mag, ang = cv2.cartToPolar(Gx, Gy, angleInDegrees = True)
 
-    # Manual Calculation of Magnitude and Angle 
-    mag = magnitude(Gx, Gy)
-    ang = np.arctan2(Gy, Gx) * 180 / np.pi
+#     # Manual Calculation of Magnitude and Angle 
+#     mag = magnitude(Gx, Gy)
+#     ang = np.arctan2(Gy, Gx) * 180 / np.pi
     
-	# Setting the minimum and maximum thresholds for double thresholding
-    max_mag = np.max(mag)
-    if not low_threshold:
-        low_threshold = max_mag * 0.1
-    if not high_threshold:
-        high_threshold = max_mag * 0.5
+# 	# Setting the minimum and maximum thresholds for double thresholding
+#     max_mag = np.max(mag)
+#     if not low_threshold:
+#         low_threshold = max_mag * 0.1
+#     if not high_threshold:
+#         high_threshold = max_mag * 0.5
         
-	# Get the dimentions of the input image
-    height, width = img.shape
+# 	# Get the dimentions of the input image
+#     height, width = img.shape
     
-	# Loop though every pixel in the grayscale image
-    for x_i in range(width):
-        for y_i in range(height):
-            grad_ang = ang[y_i, x_i]
-            grad_ang = abs(grad_ang-180) if abs(grad_ang) > 180 else abs(grad_ang)
+# 	# Loop though every pixel in the grayscale image
+#     for x_i in range(width):
+#         for y_i in range(height):
+#             grad_ang = ang[y_i, x_i]
+#             grad_ang = abs(grad_ang-180) if abs(grad_ang) > 180 else abs(grad_ang)
             
-			# Select the neighbours of the target pixel according to the gradient direction
+# 			# Select the neighbours of the target pixel according to the gradient direction
             
-			# In the x direction
-            if grad_ang <= 22.5:
-                neighb_1_x, neighb_1_y = x_i - 1, y_i 
-                neighb_2_x, neighb_2_y = x_i + 1, y_i 
+# 			# In the x direction
+#             if grad_ang <= 22.5:
+#                 neighb_1_x, neighb_1_y = x_i - 1, y_i 
+#                 neighb_2_x, neighb_2_y = x_i + 1, y_i 
                 
-			# In the top right (diagonal-1) direction
-            elif grad_ang > 22.5 and grad_ang <= (22.5 + 45):
-                neighb_1_x, neighb_1_y = x_i - 1, y_i - 1 
-                neighb_2_x, neighb_2_y = x_i + 1, y_i + 1
+# 			# In the top right (diagonal-1) direction
+#             elif grad_ang > 22.5 and grad_ang <= (22.5 + 45):
+#                 neighb_1_x, neighb_1_y = x_i - 1, y_i - 1 
+#                 neighb_2_x, neighb_2_y = x_i + 1, y_i + 1
                 
-			# In the y direction
-            elif grad_ang > (22.5 + 45) and grad_ang <= (22.5 + 90):
-                neighb_1_x, neighb_1_y = x_i , y_i - 1 
-                neighb_2_x, neighb_2_y = x_i , y_i + 1
+# 			# In the y direction
+#             elif grad_ang > (22.5 + 45) and grad_ang <= (22.5 + 90):
+#                 neighb_1_x, neighb_1_y = x_i , y_i - 1 
+#                 neighb_2_x, neighb_2_y = x_i , y_i + 1
                 
-			# In the top left (diagonal-2) direction
-            elif grad_ang > (22.5 + 90) and grad_ang <= (22.5 + 135):
-                neighb_1_x, neighb_1_y = x_i - 1, y_i + 1 
-                neighb_2_x, neighb_2_y = x_i + 1, y_i - 1
+# 			# In the top left (diagonal-2) direction
+#             elif grad_ang > (22.5 + 90) and grad_ang <= (22.5 + 135):
+#                 neighb_1_x, neighb_1_y = x_i - 1, y_i + 1 
+#                 neighb_2_x, neighb_2_y = x_i + 1, y_i - 1
                 
-			# Now it restarts the cycle
-            elif grad_ang > (22.5 + 135) and grad_ang <= (22.5 + 180):
-                neighb_1_x, neighb_1_y = x_i - 1, y_i  
-                neighb_2_x, neighb_2_y = x_i + 1, y_i 
+# 			# Now it restarts the cycle
+#             elif grad_ang > (22.5 + 135) and grad_ang <= (22.5 + 180):
+#                 neighb_1_x, neighb_1_y = x_i - 1, y_i  
+#                 neighb_2_x, neighb_2_y = x_i + 1, y_i 
                 
-			# Non-maximum suppression step
-            if width > neighb_1_x >= 0 and height > neighb_1_y >= 0:
-                if mag[y_i, x_i] < mag[neighb_1_y, neighb_1_x]:
-                    mag[y_i, x_i] = 0
-                    continue
-            if width > neighb_2_x >= 0 and height > neighb_2_y >= 0:
-                if mag[y_i, x_i] < mag[neighb_2_y, neighb_2_x]:
-                    mag[y_i, x_i] = 0
+# 			# Non-maximum suppression step
+#             if width > neighb_1_x >= 0 and height > neighb_1_y >= 0:
+#                 if mag[y_i, x_i] < mag[neighb_1_y, neighb_1_x]:
+#                     mag[y_i, x_i] = 0
+#                     continue
+#             if width > neighb_2_x >= 0 and height > neighb_2_y >= 0:
+#                 if mag[y_i, x_i] < mag[neighb_2_y, neighb_2_x]:
+#                     mag[y_i, x_i] = 0
                     
 
-	# Hysteresis Thresholding (NOT IMPLEMENTED YET)
-    weak_ids = np.zeros_like(img) 
-    strong_ids = np.zeros_like(img)               
-    ids = np.zeros_like(img) 
+# 	# Hysteresis Thresholding (NOT IMPLEMENTED YET)
+#     weak_ids = np.zeros_like(img) 
+#     strong_ids = np.zeros_like(img)               
+#     ids = np.zeros_like(img) 
 		
-	# double thresholding step 
-    for i_x in range(width): 
-        for i_y in range(height): 
+# 	# double thresholding step 
+#     for i_x in range(width): 
+#         for i_y in range(height): 
               
-            grad_mag = mag[i_y, i_x] 
+#             grad_mag = mag[i_y, i_x] 
               
-            if grad_mag < low_threshold: 
-                mag[i_y, i_x]= 0
-            elif high_threshold > grad_mag >= low_threshold: 
-                ids[i_y, i_x]= 1
-            else: 
-                ids[i_y, i_x]= 2
+#             if grad_mag < low_threshold: 
+#                 mag[i_y, i_x]= 0
+#             elif high_threshold > grad_mag >= low_threshold: 
+#                 ids[i_y, i_x]= 1
+#             else: 
+#                 ids[i_y, i_x]= 2
                 
-    return mag
+#     return mag
 
 # Prewitt Edge Detection
 # def prewitt_edge_detection(image):
