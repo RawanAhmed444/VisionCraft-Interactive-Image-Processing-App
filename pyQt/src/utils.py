@@ -70,4 +70,4 @@ def cumsum(arr):
     for i in range(1, len(arr)):  # Start from the second element
         cumulative_sum[i] = cumulative_sum[i - 1] + arr[i]  # Add previous sum
 
-    return cumulative_sum
+    return np.cumsum(arr)
