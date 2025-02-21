@@ -136,8 +136,10 @@ class MainWindow(QMainWindow):
 
         tab_widget.addTab(filter_tab, "Filter")
         tab_widget.addTab(histogram_tab, "Histogram")
+        tab_widget.addTab(QFrame(), "Edges")
+        tab_widget.addTab(QFrame(), "FFT filter")
 
-        left_layout.addSpacerItem(QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+        left_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
         left_layout.addWidget(tab_widget)
         main_layout.addWidget(left_frame)
 
@@ -150,43 +152,85 @@ class MainWindow(QMainWindow):
         input_output_layout = QHBoxLayout(input_output_frame)
         input_output_layout.setSpacing(20)
 
+        v_layout_input = QVBoxLayout()
 
-        self.input_frame = QFrame()
-        self.input_frame.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
-        self.input_layout = QVBoxLayout(self.input_frame)
+        self.input_frame_1 = QFrame()
+        self.input_frame_1.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
+        self.input_layout_1 = QVBoxLayout(self.input_frame_1)
 
-        self.input_label = QLabel("Input Image")
-        self.input_label.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
-        self.input_label.setMaximumHeight(70)
-        self.input_label.setAlignment(Qt.AlignCenter)
+        self.input_label_1 = QLabel("Image 1")
+        self.input_label_1.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
+        self.input_label_1.setMaximumHeight(70)
+        self.input_label_1.setAlignment(Qt.AlignCenter)
 
-        self.input_image_label = QLabel("")
-        self.input_image_label.setAlignment(Qt.AlignTop)
-        self.input_image_label.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
+        self.input_image_label_1 = QLabel("")
+        self.input_image_label_1.setAlignment(Qt.AlignTop | Qt.AlignCenter)
+        self.input_image_label_1.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
 
-        self.input_layout.addWidget(self.input_label)
-        self.input_layout.addWidget(self.input_image_label)
-        
-        input_output_layout.addWidget(self.input_frame)
+        self.input_layout_1.addWidget(self.input_label_1)
+        self.input_layout_1.addWidget(self.input_image_label_1)
+
+        self.input_frame_2 = QFrame()
+        self.input_frame_2.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
+        self.input_layout_2 = QVBoxLayout(self.input_frame_2)
+
+        self.input_label_2 = QLabel("Image 2")
+        self.input_label_2.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
+        self.input_label_2.setMaximumHeight(70)
+        self.input_label_2.setAlignment(Qt.AlignCenter)
+
+        self.input_image_label_2 = QLabel("")
+        self.input_image_label_2.setAlignment(Qt.AlignTop | Qt.AlignCenter)
+        self.input_image_label_2.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
+
+        self.input_layout_2.addWidget(self.input_label_2)
+        self.input_layout_2.addWidget(self.input_image_label_2)
+
+        v_layout_input.addWidget(self.input_frame_1)
+        v_layout_input.addWidget(self.input_frame_2)
+
+        input_output_layout.addLayout(v_layout_input)
 
 
-        self.output_frame = QFrame()
-        self.output_frame.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
-        self.output_layout = QVBoxLayout(self.output_frame)
 
-        self.output_label = QLabel("Output Image")
-        self.output_label.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
-        self.output_label.setMaximumHeight(70)
-        self.output_label.setAlignment(Qt.AlignCenter)
+        v_layout_output = QVBoxLayout()
 
-        self.output_image_label = QLabel("")
-        self.output_image_label.setAlignment(Qt.AlignTop)
-        self.output_image_label.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
+        self.output_frame_1 = QFrame()
+        self.output_frame_1.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
+        self.output_layout_1 = QVBoxLayout(self.output_frame_1)
 
-        self.output_layout.addWidget(self.output_label)
-        self.output_layout.addWidget(self.output_image_label)
+        self.output_label_1 = QLabel("Plot 1")
+        self.output_label_1.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
+        self.output_label_1.setMaximumHeight(70)
+        self.output_label_1.setAlignment(Qt.AlignCenter)
 
-        input_output_layout.addWidget(self.output_frame)
+        self.output_image_label_1 = QLabel("")
+        self.output_image_label_1.setAlignment(Qt.AlignTop | Qt.AlignCenter)
+        self.output_image_label_1.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
+
+        self.output_layout_1.addWidget(self.output_label_1)
+        self.output_layout_1.addWidget(self.output_image_label_1)
+
+        self.output_frame_2 = QFrame()
+        self.output_frame_2.setStyleSheet("background-color: black; border: 2px solid rgb(40, 57, 153); border-radius: 10px; padding: 10px;")
+        self.output_layout_2 = QVBoxLayout(self.output_frame_2)
+
+        self.output_label_2 = QLabel("Plot 2")
+        self.output_label_2.setStyleSheet("background-color: black;font: 600 15pt 'Segoe UI';border:none;")
+        self.output_label_2.setMaximumHeight(70)
+        self.output_label_2.setAlignment(Qt.AlignCenter)
+
+        self.output_image_label_2 = QLabel("")
+        self.output_image_label_2.setAlignment(Qt.AlignTop | Qt.AlignCenter)
+        self.output_image_label_2.setStyleSheet("background-color: black;border: none; font: 600 15pt 'Segoe UI';")
+
+        self.output_layout_2.addWidget(self.output_label_2)
+        self.output_layout_2.addWidget(self.output_image_label_2)
+
+        v_layout_output.addWidget(self.output_frame_1)
+        v_layout_output.addWidget(self.output_frame_2)
+
+        input_output_layout.addLayout(v_layout_output)
 
 
 
@@ -222,15 +266,15 @@ class MainWindow(QMainWindow):
 
     def load_image(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Load Image", "", "Images (*.png *.xpm *.jpg *.bmp *.gif)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Image", "", "Images (*.png *.xpm *.jpg *.bmp *.gif *.jpeg)", options=options)
         if file_name:
             pixmap = QPixmap(file_name)
-            self.input_image_label.setPixmap(pixmap.scaled(self.input_image_label.width(), self.input_image_label.height(), Qt.AspectRatioMode.KeepAspectRatio))
-            self.output_image_label.setPixmap(pixmap.scaled(self.output_image_label.width(), self.output_image_label.height(), Qt.AspectRatioMode.KeepAspectRatio))
+            self.input_image_label_1.setPixmap(pixmap.scaled(self.input_image_label_1.size(), Qt.AspectRatioMode.KeepAspectRatio))
+            self.output_image_label_1.setPixmap(pixmap.scaled(self.output_image_label_1.size(), Qt.AspectRatioMode.KeepAspectRatio))
 
     def clear_image(self):
-        self.input_image_label.clear()
-        self.output_label.clear()
+        self.input_image_label_1.clear()
+        self.output_image_label_1.clear()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
