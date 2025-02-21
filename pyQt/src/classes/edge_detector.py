@@ -23,13 +23,31 @@ class EdgeDetector:
         # Dictionary to store edge maps computed by various methods
         self.edge_maps = {}
 
-    def detect_sobel(self):
+    def detect_edges(self, detector_method = 'sobel', **kwargs):
+        """
+        Detects edges using the specified method.
+        
+        :param detector_method: String indicating the method ('sobel', 'canny', 'prewitt', 'roberts').
+        :param kwargs: Additional arguments for edge detection.
+        :return: Edge map produced by the specified method.
+        """
+        if detector_method == 'sobel':
+            return self.detect_sobel(**kwargs)
+        elif detector_method == 'canny':
+            return self.detect_canny(**kwargs)
+        elif detector_method == 'prewitt':
+            return self.detect_prewitt(**kwargs)
+        elif detector_method == 'roberts':
+            return self.detect_roberts(**kwargs)
+        else:
+            raise ValueError(f"Unknown edge detection method '{detector_method}'. Use 'sobel', 'canny', 'prewitt', or 'roberts'.")
+    def detect_sobel(self, kernel_size=3, sigma=1.0):
         """
         Detects edges using the Sobel operator.
         
         :return: Edge map (normalized to 0-255) produced by Sobel detection.
         """
-        result = sobel_edge_detection(self.image)
+        result = sobel_edge_detection(self.image, kernel_size, sigma)
         self.edge_maps['sobel'] = result
         return result
 
@@ -47,13 +65,14 @@ class EdgeDetector:
         self.edge_maps['canny'] = result
         return result
 
-    def detect_prewitt(self):
+    def detect_prewitt(self, threshold = 50, value = 255 ):
         """
         Detects edges using the Prewitt operator.
         
         :return: Edge map produced by Prewitt detection.
         """
-        result = prewitt_edge_detection(self.image)
+        result = prewitt_edge_detection(self.image, threshold,
+                                        value)
         self.edge_maps['prewitt'] = result
         return result
 

@@ -1,7 +1,7 @@
 import numpy as np 
 from utils import convolve, magnitude, convert_to_grayscale
-from thresholding_functions import globalthresholding
-from noise_functions import apply_gaussian_filter
+from functions.thresholding_functions import globalthresholding
+from functions.noise_functions import apply_gaussian_filter
 import cv2 
 import matplotlib.pyplot as plt 
 
@@ -116,7 +116,7 @@ def apply_hysteresis(strong_edges, weak_edges):
 
 
 
-def sobel_edge_detection(image):
+def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
     """
     Detects edges using the Sobel operator.
     
@@ -125,13 +125,13 @@ def sobel_edge_detection(image):
     """
     gray = convert_to_grayscale(image)
     # Optional Gaussian smoothing before gradient calculation:
-    blurred = smooth_image(gray, kernel_size=3, sigma=1.0)
+    blurred = smooth_image(gray, kernel_size, sigma)
     Gx, Gy = compute_sobel_gradients(blurred)
     G = magnitude(Gx, Gy)
     return np.uint8(255 * (G / np.max(G)))
 
 
-def prewitt_edge_detection(image):
+def prewitt_edge_detection(image, threshold, value):
     """
     Detects edges using the Prewitt operator.
     
@@ -152,7 +152,7 @@ def prewitt_edge_detection(image):
     Gy = np.float32(Gy)
     
     G = np.uint8(magnitude(Gx, Gy))
-    G = globalthresholding(G, 50, 255)
+    G = globalthresholding(G, threshold, value)
     return G
     
     
