@@ -20,7 +20,7 @@ class ThresholdingProcessor:
         self.k = k
         self.binary_image = None
 
-    def apply_thresholding(self):
+    def apply_thresholding(self, **kwargs):
         """
         Applies either global or local thresholding based on the chosen type.
         
@@ -28,6 +28,7 @@ class ThresholdingProcessor:
         """
         if self.image is None:
             raise ValueError("No image set. Please call set_image() first.")
+        self.set_parameters(**kwargs)
         
         if self.threshold_type == "global":
             self.binary_image = globalthresholding(self.image, self.T)
@@ -38,6 +39,20 @@ class ThresholdingProcessor:
         
         return self.binary_image
 
+    def set_parameters(self, **kwargs):
+        """
+        Sets the parameters for thresholding.
+
+        :param kwargs: Additional keyword arguments for setting parameters.
+        """
+        if "threshold_type" in kwargs:
+            self.threshold_type = kwargs["threshold_type"]
+        if "T" in kwargs:
+            self.T = kwargs["T"]
+        if "kernel" in kwargs:
+            self.kernel = kwargs["kernel"]
+        if "k" in kwargs:
+            self.k = kwargs["k"]
     def set_image(self, image):
         """
         Sets the image for thresholding.

@@ -1,6 +1,6 @@
 import numpy as np
 from functions.frequency_functions import ideal_filter, calculate_dft, filter_image
-
+from functions.hybrid_functions import hybrid_filter
 class FrequencyProcessor:
     def __init__(self): 
         self.image = None   
@@ -16,7 +16,10 @@ class FrequencyProcessor:
         mask = ideal_filter(self.dft_shifted, cutoff, filter_type)
         self.filtered_image = filter_image(self.dft_shifted, mask)
         return self.filtered_image 
-
+    
+    def create_hybrid_image(self, img2, cutoff1=10, cutoff2=10, type1="lp", type2="lp"):
+        self.hybrid_image = hybrid_filter(self.image, img2, cutoff1, cutoff2, type1, type2)
+        return self.hybrid_image
     def set_image(self, image):
         """Sets the image and computes its DFT"""
         if image is None or not isinstance(image, np.ndarray):

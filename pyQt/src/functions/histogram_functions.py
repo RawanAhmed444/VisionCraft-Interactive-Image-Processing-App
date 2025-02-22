@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import convert_to_grayscale 
+from utils import convert_to_grayscale , cumsum
 
 def compute_histogram(image):
     """_summary_
@@ -19,21 +19,7 @@ def compute_histogram(image):
 
     return hist
 
-def cumsum(arr):
-    """
-    Computes the cumulative sum of an array.
 
-    :param arr: List of numbers.
-    :return: List containing the cumulative sum.
-    """
-    cumulative_sum = [0] * len(arr)  # Initialize output array with zeros
-    
-    cumulative_sum[0] = arr[0]  # First element remains the same
-
-    for i in range(1, len(arr)):  # Start from the second element
-        cumulative_sum[i] = cumulative_sum[i - 1] + arr[i]  # Add previous sum
-
-    return cumulative_sum
 
 def compute_cdf(hist):
     cdf = cumsum(hist)
@@ -84,7 +70,7 @@ def draw_histo_and_distribution_curve(data, bins):
     # Compute normal distribution curve
     mean, std = np.mean(data), np.std(data)
     x = np.linspace(min(data), max(data), 100)
-    y = norm.pdf(x, mean, std)
+    y = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std) ** 2)
     
     # Overlay normal distribution curve
     plt.plot(x, y, color='red', label='Normal Distribution')

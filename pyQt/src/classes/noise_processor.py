@@ -41,7 +41,7 @@ class NoiseProcessor:
 
         return self.noisy_image
 
-    def apply_filters(self):
+    def apply_filters(self, **kwargs): 
         """
         Applies average, Gaussian, and median filters to the noisy image.
 
@@ -51,9 +51,9 @@ class NoiseProcessor:
             raise ValueError("No noisy image available. Apply noise first.")
 
         self.filtered_images = {
-            "Average Filter": apply_average_filter(self.noisy_image),
-            "Gaussian Filter": apply_gaussian_filter(self.noisy_image),
-            "Median Filter": apply_median_filter(self.noisy_image)
+            "Average Filter": apply_average_filter(self.noisy_image, **kwargs), # kernel_size=3
+            "Gaussian Filter": apply_gaussian_filter(self.noisy_image, **kwargs), # kernel_size=3, sigma=1.0
+            "Median Filter": apply_median_filter(self.noisy_image, **kwargs) # kernel_size=3
         }
         return self.filtered_images
 
