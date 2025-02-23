@@ -20,28 +20,36 @@ def magnitude(x, y):
 
 def convolve(img, kernel):
     """
-    Applies convolution to an image using a given kernel (without using convolve2d).
-
+    Applies convolution to an image using a given kernel with zero-order interpolation.
+    
     :param img: Input grayscale image (NumPy array).
     :param kernel: Filter kernel (NumPy array).
     :return: Convolved image.
     """
+    height, width = img.shape
     kernel_height, kernel_width = kernel.shape
-    pad_h, pad_w = kernel_height // 2, kernel_width // 2  # Padding for kernel centering
-    
-    # Pad the image (edge mode to preserve boundary information)
-    img_padded = np.pad(img, ((pad_h, pad_h), (pad_w, pad_w)), mode='edge')
-    
-    # Create an empty output image
+    pad_h, pad_w = kernel_height // 2, kernel_width // 2
+
     output = np.zeros_like(img, dtype=np.float32)
-    
-    # Perform convolution
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            region = img_padded[i:i+kernel_height, j:j+kernel_width]  # Extract region
-            output[i, j] = np.sum(region * kernel)  # Apply filter
-    
-    return np.clip(output, 0, 255).astype(np.uint8)  # Normalize output to valid range
+
+    for i in range(height):
+        for j in range(width):
+            sum_val = 0
+            for ki in range(kernel_height):
+                for kj in range(kernel_width):
+                    # Calculate source pixel coordinates
+                    y = i + ki - pad_h
+                    x = j + kj - pad_w
+                    
+                    # Apply zero-order interpolation by clamping coordinates
+                    y = max(0, min(y, height - 1))
+                    x = max(0, min(x, width - 1))
+                    
+                    sum_val += img[y, x] * kernel[ki, kj]
+            
+            output[i, j] = sum_val
+
+    return np.clip(output, 0, 255).astype(np.uint8)
 
 def gaussian_kernel(size, sigma=1.0):
     """
