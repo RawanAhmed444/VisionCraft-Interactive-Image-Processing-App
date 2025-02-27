@@ -18,6 +18,50 @@ def convert_to_grayscale(image):
 def magnitude(x, y):
     return np.sqrt(x**2 + y**2)
 
+def compute_gradient(image, axis = 0):
+    """
+    NOT IMPLEMENTED
+    Computes the gradient of an image using the Sobel operator.
+    """
+    """
+    Computes the gradient of a 2D array along the specified axis.
+    
+    For interior points, uses central differences.
+    For boundaries, uses forward difference at the beginning and backward difference at the end.
+    
+    :param image: 2D NumPy array (e.g., grayscale image).
+    :param axis: Axis along which to compute the gradient (0 for rows, 1 for columns).
+    :return: Gradient of the image along the specified axis.
+    """
+    if image.ndim != 2:
+        raise ValueError("my_gradient currently supports only 2D arrays.")
+    
+    grad = np.zeros_like(image, dtype=np.uint8)
+    
+    if axis == 0:
+        # Compute gradient along rows
+        # Forward difference for the first row
+        grad[0, :] = image[1, :] - image[0, :]
+        # Central differences for interior rows
+        for i in range(1, image.shape[0] - 1):
+            grad[i, :] = (image[i+1, :] - image[i-1, :]) / 2.0
+        # Backward difference for the last row
+        grad[-1, :] = image[-1, :] - image[-2, :]
+        
+    elif axis == 1:
+        # Compute gradient along columns
+        # Forward difference for the first column
+        grad[:, 0] = image[:, 1] - image[:, 0]
+        # Central differences for interior columns
+        for j in range(1, image.shape[1] - 1):
+            grad[:, j] = (image[:, j+1] - image[:, j-1]) / 2.0
+        # Backward difference for the last column
+        grad[:, -1] = image[:, -1] - image[:, -2]
+        
+    else:
+        raise ValueError("Unsupported axis. Use axis=0 for rows or axis=1 for columns.")
+        
+    return np.clip(grad, 0, 255).astype(np.uint8)
 def convolve(img, kernel):
     """
     Applies convolution to an image using a given kernel with zero-order interpolation.

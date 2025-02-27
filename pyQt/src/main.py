@@ -10,11 +10,22 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
 from processor_factory import ProcessorFactory
+import sys
+import cv2
+import numpy as np
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, 
+    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout
+)
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import Qt
+from processor_factory import ProcessorFactory
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyQt Image Processing App")
+        self.setGeometry(100, 100, 800, 600)  # Set window size
 
         # Central widget and layout
         central_widget = QWidget()
@@ -22,41 +33,329 @@ class MainWindow(QMainWindow):
         self.layout = QVBoxLayout()
         central_widget.setLayout(self.layout)
 
-        # Buttons
+        # Image Display
+        self.lbl_image = QLabel("No Image Loaded")
+        self.lbl_image.setAlignment(Qt.AlignCenter)
+        self.lbl_image.setStyleSheet("border: 2px solid black;")
+        self.layout.addWidget(self.lbl_image)
+
+        # Load Image Button
         self.btn_load_image = QPushButton("Load Image")
         self.btn_load_image.clicked.connect(self.load_image)
         self.layout.addWidget(self.btn_load_image)
 
-        self.btn_edge_detection = QPushButton("Edge Detection (Sobel)")
-        self.btn_edge_detection.clicked.connect(self.detect_edges_sobel)
-        self.layout.addWidget(self.btn_edge_detection)
+        # Noise Section UI Components
+        self.noiseType = QComboBox()
+        self.noiseType.addItems(["uniform", "gaussian", "salt_pepper"])
+        # self.noiseType.currentIndexChanged.connect(self.update_noise_layout)
 
-        self.btn_canny = QPushButton("Edge Detection (Canny)")
-        self.btn_canny.clicked.connect(self.detect_edges_canny)
-        self.layout.addWidget(self.btn_canny)
+        # Uniform Noise
+        self.noiseIntensity = QSpinBox()
+        self.noiseIntensity.setRange(1, 100)
+        self.noiseIntensity.setValue(50)
 
-        self.btn_noise = QPushButton("Add Noise & Filter")
-        self.btn_noise.clicked.connect(self.noise_and_filter)
-        self.layout.addWidget(self.btn_noise)
+        # Gaussian Noise
+        self.gaussianMean = QDoubleSpinBox()
+        self.gaussianMean.setRange(-50, 50)
+        self.gaussianMean.setValue(0)
 
+        self.gaussianStd = QDoubleSpinBox()
+        self.gaussianStd.setRange(1, 100)
+        self.gaussianStd.setValue(25)
+
+        # Salt & Pepper Noise
+        self.saltProb = QDoubleSpinBox()
+        self.saltProb.setRange(0.0, 1.0)
+        self.saltProb.setSingleStep(0.01)
+        self.saltProb.setValue(0.02)
+
+        self.pepperProb = QDoubleSpinBox()
+        self.pepperProb.setRange(0.0, 1.0)
+        self.pepperProb.setSingleStep(0.01)
+        self.pepperProb.setValue(0.02)
+
+        # Noise Button
+        self.btn_noise = QPushButton("Add Noise")
+        self.btn_noise.clicked.connect(self.apply_noise)
+
+        # Layout for Noise Parameters
+        self.noiseParamLayout = QHBoxLayout()
+        self.noiseParamLayout.addWidget(self.noiseType)
+        self.noiseParamLayout.addWidget(self.noiseIntensity)  # Default (Uniform)
+        self.noiseParamLayout.addWidget(self.btn_noise)
+        self.noiseParamLayout.addWidget(self.gaussianMean)  # Default (Gaussian)
+        self.noiseParamLayout.addWidget(self.gaussianStd)  # Default (Gaussian)
+        self.noiseParamLayout.addWidget(self.saltProb)
+        self.noiseParamLayout.addWidget(self.pepperProb)
+        
+        self.layout.addLayout(self.noiseParamLayout)
+        
+        
+        # Filter Section
+        self.filterType = QComboBox()
+        self.filterType.addItems(["average", "gaussian", "median"])
+        self.kernelSize = QSpinBox()
+        self.kernelSize.setRange(1, 15)
+        self.kernelSize.setValue(3)
+        self.sigmaValue = QDoubleSpinBox()
+        self.sigmaValue.setRange(0.1, 10.0)
+        self.sigmaValue.setValue(1.0)
+        self.btn_filter = QPushButton("Apply Filter")
+        self.btn_filter.clicked.connect(self.apply_filter)
+
+        filterLayout = QHBoxLayout()
+        filterLayout.addWidget(self.filterType)
+        filterLayout.addWidget(self.kernelSize)
+        filterLayout.addWidget(self.sigmaValue)
+        filterLayout.addWidget(self.btn_filter)
+        self.layout.addLayout(filterLayout)
+
+        # Edge Detection Section UI Components
+        self.edgeType = QComboBox()
+        self.edgeType.addItems(["sobel", "canny", "prewitt", "roberts"])
+        # self.edgeType.currentIndexChanged.connect(self.update_edge_layout)
+
+        # Sobel Parameters
+        self.sobelKernelSize = QSpinBox()
+        self.sobelKernelSize.setRange(1, 15)
+        self.sobelKernelSize.setValue(3)
+
+        self.sobelSigma = QDoubleSpinBox()
+        self.sobelSigma.setRange(0.1, 10.0)
+        self.sobelSigma.setValue(1.0)
+
+        # Canny Parameters
+        self.cannyLowThreshold = QSpinBox()
+        self.cannyLowThreshold.setRange(0, 255)
+        self.cannyLowThreshold.setValue(50)
+
+        self.cannyHighThreshold = QSpinBox()
+        self.cannyHighThreshold.setRange(0, 255)
+        self.cannyHighThreshold.setValue(150)
+
+        self.cannyMaxEdgeVal = QSpinBox()
+        self.cannyMaxEdgeVal.setRange(0, 255)
+        self.cannyMaxEdgeVal.setValue(255)
+
+        self.cannyMinEdgeVal = QSpinBox()
+        self.cannyMinEdgeVal.setRange(0, 255)
+        self.cannyMinEdgeVal.setValue(0)
+
+        # Prewitt Parameters
+        self.prewittThreshold = QSpinBox()
+        self.prewittThreshold.setRange(0, 255)
+        self.prewittThreshold.setValue(50)
+
+        self.prewittValue = QSpinBox()
+        self.prewittValue.setRange(0, 255)
+        self.prewittValue.setValue(255)
+
+        # Apply Edge Detection Button
+        self.btn_edge_detection = QPushButton("Detect Edges")
+        self.btn_edge_detection.clicked.connect(self.detect_edges)
+
+        # Layout for Edge Parameters
+        self.edgeLayout = QHBoxLayout()
+        self.edgeLayout.addWidget(self.edgeType)
+        self.edgeLayout.addWidget(self.sobelKernelSize)  # Default (Sobel)
+        self.edgeLayout.addWidget(self.sobelSigma)  # Default (Sobel)   
+        self.edgeLayout.addWidget(self.cannyLowThreshold)  # Default (Canny)
+        self.edgeLayout.addWidget(self.cannyHighThreshold)
+        self.edgeLayout.addWidget(self.cannyMaxEdgeVal)
+        self.edgeLayout.addWidget(self.cannyMinEdgeVal)
+        self.edgeLayout.addWidget(self.prewittThreshold)  # Default (Prewitt)   
+        self.edgeLayout.addWidget(self.prewittValue)
+        
+        self.edgeLayout.addWidget(self.btn_edge_detection)
+        self.layout.addLayout(self.edgeLayout)
+
+
+        # Thresholding Section UI Components
+        self.thresholdType = QComboBox()
+        self.thresholdType.addItems(["global", "local"])
+        # self.thresholdType.currentIndexChanged.connect(self.update_threshold_layout)
+
+        # Global Thresholding
+        self.globalThreshold = QSpinBox()
+        self.globalThreshold.setRange(0, 255)
+        self.globalThreshold.setValue(128)
+
+        # Local Thresholding
+        self.kernelSizeThreshold = QSpinBox()
+        self.kernelSizeThreshold.setRange(1, 15)
+        self.kernelSizeThreshold.setValue(4)
+
+        self.kValue = QDoubleSpinBox()
+        self.kValue.setRange(0.0, 5.0)
+        self.kValue.setSingleStep(0.1)
+        self.kValue.setValue(2.0)
+
+        # Apply Thresholding Button
+        self.btn_threshold = QPushButton("Apply Thresholding")
+        self.btn_threshold.clicked.connect(self.apply_thresholding)
+
+        # Layout for Thresholding Parameters
+        self.thresholdLayout = QHBoxLayout()
+        self.thresholdLayout.addWidget(self.thresholdType)
+        self.thresholdLayout.addWidget(self.globalThreshold)  # Default (Global)
+        self.thresholdLayout.addWidget(self.kernelSizeThreshold)  # Default (Local)
+        self.thresholdLayout.addWidget(self.kValue)  # Default
+        self.thresholdLayout.addWidget(self.btn_threshold)
+        self.layout.addLayout(self.thresholdLayout)
+        
+        # Histogram & Frequency Filtering Section
+        self.btn_histogram = QPushButton("Show Histogram")
+        self.btn_histogram.clicked.connect(self.show_histogram)
+        self.layout.addWidget(self.btn_histogram)
+
+            # Frequency Filter Section UI Components
+        self.freqType = QComboBox()
+        self.freqType.addItems(["low_pass", "high_pass"])
+
+        self.freqRadius = QSpinBox()
+        self.freqRadius.setRange(1, 100)  # Set reasonable range
+        self.freqRadius.setValue(10)  # Default cutoff frequency
+
+        self.btn_freq_filter = QPushButton("Apply Frequency Filter")
+        self.btn_freq_filter.clicked.connect(self.apply_frequency_filter)
+
+        # Layout for Frequency Filter Parameters
+        self.freqLayout = QHBoxLayout()
+        self.freqLayout.addWidget(QLabel("Filter Type:"))
+        self.freqLayout.addWidget(self.freqType)
+        self.freqLayout.addWidget(QLabel("Radius:"))
+        self.freqLayout.addWidget(self.freqRadius)
+        self.freqLayout.addWidget(self.btn_freq_filter)
+
+        # Add Layout to Main Layout
+        self.layout.addLayout(self.freqLayout)
+
+        # Hybrid Image Parameters
+        self.cutoff1 = QSpinBox()
+        self.cutoff1.setRange(1, 100)
+        self.cutoff1.setValue(10)
+
+        self.cutoff2 = QSpinBox()
+        self.cutoff2.setRange(1, 100)
+        self.cutoff2.setValue(10)
+
+        self.type1 = QComboBox()
+        self.type1.addItems(["lp", "hp"])
+
+        self.type2 = QComboBox()
+        self.type2.addItems(["lp", "hp"])
+
+        # Apply Hybrid Image Button
+        self.btn_hybrid = QPushButton("Create Hybrid Image")
+        self.btn_hybrid.clicked.connect(self.create_hybrid_image)
+
+        # Layout for Hybrid Image Parameters
+        self.hybridLayout = QHBoxLayout()
+        self.hybridLayout.addWidget(QLabel("Cutoff 1:"))
+        self.hybridLayout.addWidget(self.cutoff1)
+        self.hybridLayout.addWidget(QLabel("Type 1:"))
+        self.hybridLayout.addWidget(self.type1)
+        self.hybridLayout.addWidget(QLabel("Cutoff 2:"))
+        self.hybridLayout.addWidget(self.cutoff2)
+        self.hybridLayout.addWidget(QLabel("Type 2:"))
+        self.hybridLayout.addWidget(self.type2)
+        self.hybridLayout.addWidget(self.btn_hybrid)
+
+        # Add Layout to Main Layout
+        self.layout.addLayout(self.hybridLayout)
+
+        # Equalization & Normalization Section
+        self.btn_equalize = QPushButton("Equalize Image")
+        self.btn_equalize.clicked.connect(self.equalize)
+        self.layout.addWidget(self.btn_equalize)
+
+        self.btn_normalize = QPushButton("Normalize Image")
+        self.btn_normalize.clicked.connect(self.normalize)
+        self.layout.addWidget(self.btn_normalize)
+
+        # Active Contour (Snake)
         self.btn_snake = QPushButton("Active Contour (Snake)")
-        self.btn_snake.clicked.connect(self.run_snake)
+        # self.btn_snake.clicked.connect(self.run_snake)
         self.layout.addWidget(self.btn_snake)
 
-        # Image display label
-        self.lbl_image = QLabel("No Image Loaded")
-        self.lbl_image.setAlignment(Qt.AlignCenter)
-        self.layout.addWidget(self.lbl_image)
+        # Image Processing Control Buttons
+        self.btn_confirm = QPushButton("Confirm Edit")
+        self.btn_confirm.clicked.connect(self.confirm_edit)
+        self.btn_discard = QPushButton("Discard Edit")
+        self.btn_discard.clicked.connect(self.discard_edit)
+        self.btn_reset = QPushButton("Reset Image")
+        self.btn_reset.clicked.connect(self.reset_image)
 
-        # Processors
-        self.original_image = None  # Will hold the original image
-        self.image = None  # Will hold a NumPy array for the loaded image
-        self.modified_image = None  # Will hold the processed image
-        self.extra_image = None  # Will hold the hybrid image
-        #if you want to add new processor or modify one edit this list
-        self.processors = {key: None for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
-        for processor in self.processors.keys():
-            self.processors[processor] = ProcessorFactory.create_processor(processor)
+        controlLayout = QHBoxLayout()
+        controlLayout.addWidget(self.btn_confirm)
+        controlLayout.addWidget(self.btn_discard)
+        controlLayout.addWidget(self.btn_reset)
+        self.layout.addLayout(controlLayout)
+
+        # Image & Processor Variables
+        self.image = None
+        self.original_image = None
+        self.modified_image = None
+        self.extra_image = None
+        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
+
+    def load_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
+        if file_path:
+            self.image = cv2.imread(file_path)
+            self.original_image = self.image.copy()
+            for processor in self.processors.values():
+                processor.set_image(self.image)
+            self.display_image(self.image)
+
+    def display_image(self, img):
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        h, w, ch = img_rgb.shape
+        qimg = QImage(img_rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimg)
+        self.lbl_image.setPixmap(pixmap.scaled(self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio))
+
+    def apply_noise(self):
+        noise_type = self.noiseType.currentText()
+        self.modified_image = self.processors['noise'].add_noise(noise_type)
+        self.display_image(self.modified_image)
+
+    def apply_filter(self):
+        filter_type = self.filterType.currentText()
+        kernel_size = self.kernelSize.value()
+        sigma = self.sigmaValue.value()
+        self.modified_image = self.processors['noise'].apply_filters(filter_type, kernel_size=kernel_size, sigma=sigma)
+        self.display_image(self.modified_image)
+
+    def detect_edges(self):
+        edge_type = self.edgeType.currentText()
+        self.modified_image = self.processors['edge_detector'].detect_edges(edge_type)
+        self.display_image(self.modified_image)
+
+    def apply_thresholding(self):
+        threshold_type = self.thresholdType.currentText()
+        self.modified_image = self.processors['thresholding'].apply_threshold(threshold_type)
+        self.display_image(self.modified_image)
+
+    def show_histogram(self):
+        self.processors['histogram'].plot_all_histograms()
+
+    def apply_frequency_filter(self):
+        self.modified_image = self.processors['frequency'].apply_filter("low_pass")
+        self.display_image(self.modified_image)
+
+    def create_hybrid_image(self):
+        self.modified_image = self.processors['frequency'].create_hybrid_image(self.image, self.extra_image)
+        self.display_image(self.modified_image)
+
+    def equalize(self):
+        self.modified_image = self.processors['image'].get_equalized_image()
+        self.display_image(self.modified_image)
+
+    def normalize(self):
+        self.modified_image = self.processors['image'].get_normalized_image()
+        self.display_image(self.modified_image)
+
 
     def load_image(self, hybird = False):
         """
@@ -151,7 +450,8 @@ class MainWindow(QMainWindow):
             self.confirm_edit()
         
         if self.image is not None:
-            edge_map = self.processors['edge_detector'].detect_edges(edge_type, **kwargs) # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
+            edge_map = self.processors['edge_detector'].detect_edges(edge_type, **kwargs)
+            # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
             self.modified_image = edge_map 
             self.display_image(self.modified_image, modified = True)
         else:    
@@ -279,7 +579,6 @@ class MainWindow(QMainWindow):
             self.display_image(self.image)
         else:
             raise ValueError("No original image available. Load an image first.")
-        
 def main():
     app = QApplication(sys.argv)
     window = MainWindow()
@@ -288,3 +587,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
