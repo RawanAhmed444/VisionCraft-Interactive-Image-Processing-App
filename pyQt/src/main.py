@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         self.btn_load_image.clicked.connect(self.load_image)
         self.layout.addWidget(self.btn_load_image)
 
-                # Noise Section UI Components
+        # Noise Section UI Components
         self.noiseType = QComboBox()
         self.noiseType.addItems(["uniform", "gaussian", "salt_pepper"])
         # self.noiseType.currentIndexChanged.connect(self.update_noise_layout)
@@ -83,6 +83,11 @@ class MainWindow(QMainWindow):
         self.noiseParamLayout.addWidget(self.noiseType)
         self.noiseParamLayout.addWidget(self.noiseIntensity)  # Default (Uniform)
         self.noiseParamLayout.addWidget(self.btn_noise)
+        self.noiseParamLayout.addWidget(self.gaussianMean)  # Default (Gaussian)
+        self.noiseParamLayout.addWidget(self.gaussianStd)  # Default (Gaussian)
+        self.noiseParamLayout.addWidget(self.saltProb)
+        self.noiseParamLayout.addWidget(self.pepperProb)
+        
         self.layout.addLayout(self.noiseParamLayout)
         
         
@@ -152,11 +157,20 @@ class MainWindow(QMainWindow):
         # Layout for Edge Parameters
         self.edgeLayout = QHBoxLayout()
         self.edgeLayout.addWidget(self.edgeType)
+        self.edgeLayout.addWidget(self.sobelKernelSize)  # Default (Sobel)
+        self.edgeLayout.addWidget(self.sobelSigma)  # Default (Sobel)   
+        self.edgeLayout.addWidget(self.cannyLowThreshold)  # Default (Canny)
+        self.edgeLayout.addWidget(self.cannyHighThreshold)
+        self.edgeLayout.addWidget(self.cannyMaxEdgeVal)
+        self.edgeLayout.addWidget(self.cannyMinEdgeVal)
+        self.edgeLayout.addWidget(self.prewittThreshold)  # Default (Prewitt)   
+        self.edgeLayout.addWidget(self.prewittValue)
+        
         self.edgeLayout.addWidget(self.btn_edge_detection)
         self.layout.addLayout(self.edgeLayout)
 
 
-                # Thresholding Section UI Components
+        # Thresholding Section UI Components
         self.thresholdType = QComboBox()
         self.thresholdType.addItems(["global", "local"])
         # self.thresholdType.currentIndexChanged.connect(self.update_threshold_layout)
@@ -184,6 +198,8 @@ class MainWindow(QMainWindow):
         self.thresholdLayout = QHBoxLayout()
         self.thresholdLayout.addWidget(self.thresholdType)
         self.thresholdLayout.addWidget(self.globalThreshold)  # Default (Global)
+        self.thresholdLayout.addWidget(self.kernelSizeThreshold)  # Default (Local)
+        self.thresholdLayout.addWidget(self.kValue)  # Default
         self.thresholdLayout.addWidget(self.btn_threshold)
         self.layout.addLayout(self.thresholdLayout)
         
@@ -192,15 +208,27 @@ class MainWindow(QMainWindow):
         self.btn_histogram.clicked.connect(self.show_histogram)
         self.layout.addWidget(self.btn_histogram)
 
+            # Frequency Filter Section UI Components
         self.freqType = QComboBox()
         self.freqType.addItems(["low_pass", "high_pass"])
+
+        self.freqRadius = QSpinBox()
+        self.freqRadius.setRange(1, 100)  # Set reasonable range
+        self.freqRadius.setValue(10)  # Default cutoff frequency
+
         self.btn_freq_filter = QPushButton("Apply Frequency Filter")
         self.btn_freq_filter.clicked.connect(self.apply_frequency_filter)
 
-        freqLayout = QHBoxLayout()
-        freqLayout.addWidget(self.freqType)
-        freqLayout.addWidget(self.btn_freq_filter)
-        self.layout.addLayout(freqLayout)
+        # Layout for Frequency Filter Parameters
+        self.freqLayout = QHBoxLayout()
+        self.freqLayout.addWidget(QLabel("Filter Type:"))
+        self.freqLayout.addWidget(self.freqType)
+        self.freqLayout.addWidget(QLabel("Radius:"))
+        self.freqLayout.addWidget(self.freqRadius)
+        self.freqLayout.addWidget(self.btn_freq_filter)
+
+        # Add Layout to Main Layout
+        self.layout.addLayout(self.freqLayout)
 
         # Hybrid Image Parameters
         self.cutoff1 = QSpinBox()
@@ -422,7 +450,8 @@ class MainWindow(QMainWindow):
             self.confirm_edit()
         
         if self.image is not None:
-            edge_map = self.processors['edge_detector'].detect_edges(edge_type, **kwargs) # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
+            edge_map = self.processors['edge_detector'].detect_edges(edge_type, **kwargs)
+            # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
             self.modified_image = edge_map 
             self.display_image(self.modified_image, modified = True)
         else:    
