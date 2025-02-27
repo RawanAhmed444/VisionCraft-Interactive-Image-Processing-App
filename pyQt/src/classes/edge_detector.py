@@ -12,17 +12,26 @@ class EdgeDetector:
     A class to perform edge detection using various algorithms.
     It uses modular functions from edge_functions for actual processing.
     """
-    def __init__(self, image):
+    def __init__(self):
         """
         Initializes the EdgeDetector with an input image.
         
         :param image: Input image in BGR or grayscale format.
         """
         # Convert to grayscale if necessary
-        self.image = convert_to_grayscale(image)
+        self.image = None
         # Dictionary to store edge maps computed by various methods
         self.edge_maps = {}
 
+    def set_image(self, image):
+        """
+        Sets the input image for edge detection.
+        
+        :param image: Input image in BGR or grayscale format.
+        """
+        # Convert to grayscale if necessary
+        self.image = convert_to_grayscale(image)
+        
     def detect_edges(self, detector_method = 'sobel', **kwargs):
         """
         Detects edges using the specified method.

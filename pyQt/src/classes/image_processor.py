@@ -3,18 +3,18 @@ import numpy as np
 from functions.normalize_and_equalize import equalize_grayscale_image, equalize_color_image, normalize_grayscale_image, normalize_color_image
 import numpy as np
 class ImageProcessor:
-    def __init__(self, image):
+    def __init__(self):
+        self.image = None
+        self.gray_scale = False
+        self.equlized_image = None
+        self.normalized_image = None
+        
+    def set_image(self, image):
         if isinstance(image, np.ndarray):
             self.image = image
         else:
             raise ValueError("Input image must be a NumPy array")
         self.gray_scale = len(self.image.shape) == 2
-        self.equlized_image = None
-        self.normalized_image = None
-        
-    def set_image(self, image):
-        self.image = image
-
         
     def equalize(self):
         if self.gray_scale:

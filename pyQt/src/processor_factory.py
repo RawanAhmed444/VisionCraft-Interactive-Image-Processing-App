@@ -31,6 +31,7 @@ class ProcessorFactory:
             "histogram": HistogramProcessor,
             "thresholding": ThresholdingProcessor,
             "image": ImageProcessor
+            
         }
 
         if processor_type not in processor_map:

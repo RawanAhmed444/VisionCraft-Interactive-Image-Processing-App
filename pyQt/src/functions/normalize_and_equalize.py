@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from histogram_functions import compute_histogram, compute_cdf, normalize, apply_histogram_equalization
+from functions.histogram_functions import compute_histogram, compute_cdf, normalize, apply_histogram_equalization
 
 # def calculate_histogram(image):
 #     """Calculates the histogram of a grayscale image."""

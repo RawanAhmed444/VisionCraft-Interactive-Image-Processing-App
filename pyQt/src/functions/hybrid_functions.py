@@ -1,4 +1,4 @@
-from frequency_functions import ideal_filter
+from functions.frequency_functions import ideal_filter
 import numpy as np
 
 def hybrid_filter(img1, img2, cutoff1 = 10, cutoff2 = 10, type1 = "lp", type2 = "lp"):
