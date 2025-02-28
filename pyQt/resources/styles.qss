@@ -9,36 +9,39 @@ QWidget {
 QFrame#noise_frame {
     background-color: rgb(4, 3, 26);
     border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
 }
 
 /* Filter Frame */
 QFrame#filter_frame {
     background-color: rgb(4, 3, 26);
     border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
+
 }
 
 /* Edge Detection Frame */
 QFrame#edge_detection_frame {
     background-color: rgb(4, 3, 26);
-    border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
 }
 
 /* Thresholding Frame */
 QFrame#thresholding_frame {
     background-color: rgb(4, 3, 26);
-    border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
 }
 
 /* Frequency Filter Frame */
 QFrame#frequency_filter_frame {
     background-color: rgb(4, 3, 26);
-    border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
 }
 
 /* Hybrid Image Frame */
 QFrame#hybrid_image_frame {
     background-color: rgb(4, 3, 26);
-    border: 2px solid rgb(40, 57, 153);
+    padding: 15px;
 }
 
 /* Right Frame */
@@ -51,12 +54,14 @@ QFrame#right_frame {
 QFrame#control_frame {
     background-color: rgb(4, 3, 26);
     border: 2px solid rgb(40, 57, 153);
+    padding: 0;
 }
 
 /* Control Buttons Frame */
 QFrame#control_buttons_frame {
     background-color: rgb(4, 3, 26);
     border: 2px solid rgb(40, 57, 153);
+    padding: 0;
 }
 
 /* Image Control Buttons Frame */
@@ -75,6 +80,12 @@ QFrame#image_display_frame {
 QLabel {
     color: white;
     font: 600 12pt "Segoe UI";
+}
+
+QLabel#lbl_image {
+    background-color: rgb(4, 3, 26);
+    color: white;
+    border: 2px solid rgb(40, 57, 153);
 }
 
 /* QPushButton */
