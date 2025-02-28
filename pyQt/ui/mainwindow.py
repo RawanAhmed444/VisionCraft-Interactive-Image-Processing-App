@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTabWidget, QLabel, QPushButton, QRadioButton, QFileDialog, QSpacerItem, QSizePolicy, QButtonGroup
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTabWidget, QLabel, QPushButton, QCheckBox, QFileDialog, QSpacerItem, QSizePolicy
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from ImageFrame import ImageFrame
@@ -13,6 +13,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Image Processing App")
         self.setGeometry(100, 100, 1800, 800)
         self.setStyleSheet("background-color: rgb(4, 3, 26); color: white;")
+        self.current_image = None
+        self.current_output = None
 
         main_layout = QHBoxLayout()
 
@@ -76,7 +78,7 @@ class MainWindow(QMainWindow):
         input_output_layout.setSpacing(20)
 
         v_layout_input = QVBoxLayout()
-        self.image_selection_group = QButtonGroup()
+        self.image_selection_group = []
 
         frame_1=QFrame()
         frame_1.setFixedSize(700, 430)
@@ -95,7 +97,7 @@ class MainWindow(QMainWindow):
         input_output_layout.addLayout(v_layout_input)
 
         v_layout_output = QVBoxLayout()
-        self.plot_selection_group = QButtonGroup()
+        self.plot_selection_group = []
 
         ################################ Output Frames ################################
         
@@ -150,25 +152,29 @@ class MainWindow(QMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Image", "", "Images (*.png *.xpm *.jpg *.bmp *.gif *.jpeg)", options=options)
         if file_name:
             pixmap = QPixmap(file_name)
-            if self.input_frame_1.radio_button.isChecked():
+            if self.input_frame_1.checkbox.isChecked():
                 self.input_frame_1.image_label.setPixmap(pixmap.scaled(self.input_frame_1.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
-            else:
+            if self.input_frame_2.checkbox.isChecked():
                 self.input_frame_2.image_label.setPixmap(pixmap.scaled(self.input_frame_2.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
 
-            
-            if self.output_frame_1.radio_button.isChecked():
+            if self.output_frame_1.checkbox.isChecked():
                 self.output_frame_1.image_label.setPixmap(pixmap.scaled(self.output_frame_1.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
-            else:
+            if self.output_frame_2.checkbox.isChecked():
                 self.output_frame_2.image_label.setPixmap(pixmap.scaled(self.output_frame_2.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
 
     def clear_image(self):
-        if self.output_frame_1.radio_button.isChecked():
+        if self.output_frame_1.checkbox.isChecked():
             self.output_frame_1.image_label.clear()
-        else:
+        if self.output_frame_2.checkbox.isChecked():
             self.output_frame_2.image_label.clear()
 
-        if self.input_frame_1.radio_button.isChecked():
+        if self.input_frame_1.checkbox.isChecked():
             self.input_frame_1.image_label.clear()
-        else:
+        if self.input_frame_2.checkbox.isChecked():
             self.input_frame_2.image_label.clear()
 
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())

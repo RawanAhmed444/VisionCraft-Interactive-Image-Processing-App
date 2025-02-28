@@ -14,7 +14,7 @@ import sys
 import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, 
+    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,
     QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout
 )
 from PyQt5.QtGui import QPixmap, QImage
@@ -25,36 +25,36 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyQt Image Processing App")
-        self.setGeometry(100, 100, 800, 600)  # Set window size
+        self.setGeometry(100, 100, 1200, 800)  # Set window size
 
         # Central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        self.layout = QVBoxLayout()
-        central_widget.setLayout(self.layout)
+        main_layout = QHBoxLayout()
+        central_widget.setLayout(main_layout)
 
-        # Image Display
-        self.lbl_image = QLabel("No Image Loaded")
-        self.lbl_image.setAlignment(Qt.AlignCenter)
-        self.lbl_image.setStyleSheet("border: 2px solid black;")
-        self.layout.addWidget(self.lbl_image)
+        # Left Frame with TabWidget
+        left_frame = QFrame()
+        left_frame.setMaximumWidth(500)
+        left_layout = QVBoxLayout(left_frame)
+        tab_widget = QTabWidget()
 
-        # Load Image Button
-        self.btn_load_image = QPushButton("Load Image")
-        self.btn_load_image.clicked.connect(self.load_image)
-        self.layout.addWidget(self.btn_load_image)
+        # Noise and Filter Tab
+        noise_and_filter_frame = QFrame()
+        noise_and_filter_layout = QVBoxLayout(noise_and_filter_frame)
 
-        # Noise Section UI Components
+        # Noise Frame
+        noise_frame = QFrame()
+        noise_layout = QVBoxLayout(noise_frame)
+
+        # Noise UI Components
         self.noiseType = QComboBox()
         self.noiseType.addItems(["uniform", "gaussian", "salt_pepper"])
-        # self.noiseType.currentIndexChanged.connect(self.update_noise_layout)
 
-        # Uniform Noise
         self.noiseIntensity = QSpinBox()
         self.noiseIntensity.setRange(1, 100)
         self.noiseIntensity.setValue(50)
 
-        # Gaussian Noise
         self.gaussianMean = QDoubleSpinBox()
         self.gaussianMean.setRange(-50, 50)
         self.gaussianMean.setValue(0)
@@ -63,7 +63,6 @@ class MainWindow(QMainWindow):
         self.gaussianStd.setRange(1, 100)
         self.gaussianStd.setValue(25)
 
-        # Salt & Pepper Noise
         self.saltProb = QDoubleSpinBox()
         self.saltProb.setRange(0.0, 1.0)
         self.saltProb.setSingleStep(0.01)
@@ -74,48 +73,94 @@ class MainWindow(QMainWindow):
         self.pepperProb.setSingleStep(0.01)
         self.pepperProb.setValue(0.02)
 
-        # Noise Button
         self.btn_noise = QPushButton("Add Noise")
         self.btn_noise.clicked.connect(self.apply_noise)
 
-        # Layout for Noise Parameters
-        self.noiseParamLayout = QHBoxLayout()
-        self.noiseParamLayout.addWidget(self.noiseType)
-        self.noiseParamLayout.addWidget(self.noiseIntensity)  # Default (Uniform)
+        self.noiseParamLayout = QVBoxLayout()
+        noise_type_layout = QHBoxLayout()
+        noise_type_layout.addWidget(QLabel("Noise Type:"))
+        noise_type_layout.addWidget(self.noiseType)
+        self.noiseParamLayout.addLayout(noise_type_layout)
+
+        intensity_layout = QHBoxLayout()
+        intensity_layout.addWidget(QLabel("Intensity:"))
+        intensity_layout.addWidget(self.noiseIntensity)
+        self.noiseParamLayout.addLayout(intensity_layout)
+
+        mean_layout = QHBoxLayout()
+        mean_layout.addWidget(QLabel("Mean:"))
+        mean_layout.addWidget(self.gaussianMean)
+        self.noiseParamLayout.addLayout(mean_layout)
+
+        std_layout = QHBoxLayout()
+        std_layout.addWidget(QLabel("Std Dev:"))
+        std_layout.addWidget(self.gaussianStd)
+        self.noiseParamLayout.addLayout(std_layout)
+
+        salt_layout = QHBoxLayout()
+        salt_layout.addWidget(QLabel("Salt Prob:"))
+        salt_layout.addWidget(self.saltProb)
+        self.noiseParamLayout.addLayout(salt_layout)
+
+        pepper_layout = QHBoxLayout()
+        pepper_layout.addWidget(QLabel("Pepper Prob:"))
+        pepper_layout.addWidget(self.pepperProb)
+        self.noiseParamLayout.addLayout(pepper_layout)
+
         self.noiseParamLayout.addWidget(self.btn_noise)
-        self.noiseParamLayout.addWidget(self.gaussianMean)  # Default (Gaussian)
-        self.noiseParamLayout.addWidget(self.gaussianStd)  # Default (Gaussian)
-        self.noiseParamLayout.addWidget(self.saltProb)
-        self.noiseParamLayout.addWidget(self.pepperProb)
-        
-        self.layout.addLayout(self.noiseParamLayout)
-        
-        
-        # Filter Section
+
+        noise_layout.addLayout(self.noiseParamLayout)
+        noise_and_filter_layout.addWidget(noise_frame)
+
+        # Filter Frame
+        filter_frame = QFrame()
+        filter_layout = QVBoxLayout(filter_frame)
+
+        # Filter UI Components
         self.filterType = QComboBox()
         self.filterType.addItems(["average", "gaussian", "median"])
+
         self.kernelSize = QSpinBox()
         self.kernelSize.setRange(1, 15)
         self.kernelSize.setValue(3)
+
         self.sigmaValue = QDoubleSpinBox()
         self.sigmaValue.setRange(0.1, 10.0)
         self.sigmaValue.setValue(1.0)
+
         self.btn_filter = QPushButton("Apply Filter")
         self.btn_filter.clicked.connect(self.apply_filter)
 
-        filterLayout = QHBoxLayout()
-        filterLayout.addWidget(self.filterType)
-        filterLayout.addWidget(self.kernelSize)
-        filterLayout.addWidget(self.sigmaValue)
-        filterLayout.addWidget(self.btn_filter)
-        self.layout.addLayout(filterLayout)
+        self.filterParamLayout = QVBoxLayout()
+        filter_type_layout = QHBoxLayout()
+        filter_type_layout.addWidget(QLabel("Filter Type:"))
+        filter_type_layout.addWidget(self.filterType)
+        self.filterParamLayout.addLayout(filter_type_layout)
 
-        # Edge Detection Section UI Components
+        kernel_size_layout = QHBoxLayout()
+        kernel_size_layout.addWidget(QLabel("Kernel Size:"))
+        kernel_size_layout.addWidget(self.kernelSize)
+        self.filterParamLayout.addLayout(kernel_size_layout)
+
+        sigma_layout = QHBoxLayout()
+        sigma_layout.addWidget(QLabel("Sigma:"))
+        sigma_layout.addWidget(self.sigmaValue)
+        self.filterParamLayout.addLayout(sigma_layout)
+
+        self.filterParamLayout.addWidget(self.btn_filter)
+
+        filter_layout.addLayout(self.filterParamLayout)
+        noise_and_filter_layout.addWidget(filter_frame)
+
+        tab_widget.addTab(noise_and_filter_frame, "Noise & Filter")
+
+        # Edge Detection Tab
+        edge_detection_frame = QFrame()
+        edge_detection_layout = QVBoxLayout(edge_detection_frame)
+
         self.edgeType = QComboBox()
         self.edgeType.addItems(["sobel", "canny", "prewitt", "roberts"])
-        # self.edgeType.currentIndexChanged.connect(self.update_edge_layout)
 
-        # Sobel Parameters
         self.sobelKernelSize = QSpinBox()
         self.sobelKernelSize.setRange(1, 15)
         self.sobelKernelSize.setValue(3)
@@ -124,7 +169,6 @@ class MainWindow(QMainWindow):
         self.sobelSigma.setRange(0.1, 10.0)
         self.sobelSigma.setValue(1.0)
 
-        # Canny Parameters
         self.cannyLowThreshold = QSpinBox()
         self.cannyLowThreshold.setRange(0, 255)
         self.cannyLowThreshold.setValue(50)
@@ -141,7 +185,6 @@ class MainWindow(QMainWindow):
         self.cannyMinEdgeVal.setRange(0, 255)
         self.cannyMinEdgeVal.setValue(0)
 
-        # Prewitt Parameters
         self.prewittThreshold = QSpinBox()
         self.prewittThreshold.setRange(0, 255)
         self.prewittThreshold.setValue(50)
@@ -150,37 +193,71 @@ class MainWindow(QMainWindow):
         self.prewittValue.setRange(0, 255)
         self.prewittValue.setValue(255)
 
-        # Apply Edge Detection Button
         self.btn_edge_detection = QPushButton("Detect Edges")
         self.btn_edge_detection.clicked.connect(self.detect_edges)
 
-        # Layout for Edge Parameters
-        self.edgeLayout = QHBoxLayout()
-        self.edgeLayout.addWidget(self.edgeType)
-        self.edgeLayout.addWidget(self.sobelKernelSize)  # Default (Sobel)
-        self.edgeLayout.addWidget(self.sobelSigma)  # Default (Sobel)   
-        self.edgeLayout.addWidget(self.cannyLowThreshold)  # Default (Canny)
-        self.edgeLayout.addWidget(self.cannyHighThreshold)
-        self.edgeLayout.addWidget(self.cannyMaxEdgeVal)
-        self.edgeLayout.addWidget(self.cannyMinEdgeVal)
-        self.edgeLayout.addWidget(self.prewittThreshold)  # Default (Prewitt)   
-        self.edgeLayout.addWidget(self.prewittValue)
-        
-        self.edgeLayout.addWidget(self.btn_edge_detection)
-        self.layout.addLayout(self.edgeLayout)
+        self.edgeParamLayout = QVBoxLayout()
+        edge_type_layout = QHBoxLayout()
+        edge_type_layout.addWidget(QLabel("Edge Type:"))
+        edge_type_layout.addWidget(self.edgeType)
+        self.edgeParamLayout.addLayout(edge_type_layout)
 
+        sobel_kernel_layout = QHBoxLayout()
+        sobel_kernel_layout.addWidget(QLabel("Kernel Size:"))
+        sobel_kernel_layout.addWidget(self.sobelKernelSize)
+        self.edgeParamLayout.addLayout(sobel_kernel_layout)
 
-        # Thresholding Section UI Components
+        sobel_sigma_layout = QHBoxLayout()
+        sobel_sigma_layout.addWidget(QLabel("Sigma:"))
+        sobel_sigma_layout.addWidget(self.sobelSigma)
+        self.edgeParamLayout.addLayout(sobel_sigma_layout)
+
+        canny_low_layout = QHBoxLayout()
+        canny_low_layout.addWidget(QLabel("Low Threshold:"))
+        canny_low_layout.addWidget(self.cannyLowThreshold)
+        self.edgeParamLayout.addLayout(canny_low_layout)
+
+        canny_high_layout = QHBoxLayout()
+        canny_high_layout.addWidget(QLabel("High Threshold:"))
+        canny_high_layout.addWidget(self.cannyHighThreshold)
+        self.edgeParamLayout.addLayout(canny_high_layout)
+
+        canny_max_layout = QHBoxLayout()
+        canny_max_layout.addWidget(QLabel("Max Edge:"))
+        canny_max_layout.addWidget(self.cannyMaxEdgeVal)
+        self.edgeParamLayout.addLayout(canny_max_layout)
+
+        canny_min_layout = QHBoxLayout()
+        canny_min_layout.addWidget(QLabel("Min Edge:"))
+        canny_min_layout.addWidget(self.cannyMinEdgeVal)
+        self.edgeParamLayout.addLayout(canny_min_layout)
+
+        prewitt_threshold_layout = QHBoxLayout()
+        prewitt_threshold_layout.addWidget(QLabel("Threshold:"))
+        prewitt_threshold_layout.addWidget(self.prewittThreshold)
+        self.edgeParamLayout.addLayout(prewitt_threshold_layout)
+
+        prewitt_value_layout = QHBoxLayout()
+        prewitt_value_layout.addWidget(QLabel("Value:"))
+        prewitt_value_layout.addWidget(self.prewittValue)
+        self.edgeParamLayout.addLayout(prewitt_value_layout)
+
+        self.edgeParamLayout.addWidget(self.btn_edge_detection)
+
+        edge_detection_layout.addLayout(self.edgeParamLayout)
+        tab_widget.addTab(edge_detection_frame, "Edge Detection")
+
+        # Thresholding Tab
+        thresholding_frame = QFrame()
+        thresholding_layout = QVBoxLayout(thresholding_frame)
+
         self.thresholdType = QComboBox()
         self.thresholdType.addItems(["global", "local"])
-        # self.thresholdType.currentIndexChanged.connect(self.update_threshold_layout)
 
-        # Global Thresholding
         self.globalThreshold = QSpinBox()
         self.globalThreshold.setRange(0, 255)
         self.globalThreshold.setValue(128)
 
-        # Local Thresholding
         self.kernelSizeThreshold = QSpinBox()
         self.kernelSizeThreshold.setRange(1, 15)
         self.kernelSizeThreshold.setValue(4)
@@ -190,47 +267,69 @@ class MainWindow(QMainWindow):
         self.kValue.setSingleStep(0.1)
         self.kValue.setValue(2.0)
 
-        # Apply Thresholding Button
         self.btn_threshold = QPushButton("Apply Thresholding")
         self.btn_threshold.clicked.connect(self.apply_thresholding)
 
-        # Layout for Thresholding Parameters
-        self.thresholdLayout = QHBoxLayout()
-        self.thresholdLayout.addWidget(self.thresholdType)
-        self.thresholdLayout.addWidget(self.globalThreshold)  # Default (Global)
-        self.thresholdLayout.addWidget(self.kernelSizeThreshold)  # Default (Local)
-        self.thresholdLayout.addWidget(self.kValue)  # Default
-        self.thresholdLayout.addWidget(self.btn_threshold)
-        self.layout.addLayout(self.thresholdLayout)
-        
-        # Histogram & Frequency Filtering Section
-        self.btn_histogram = QPushButton("Show Histogram")
-        self.btn_histogram.clicked.connect(self.show_histogram)
-        self.layout.addWidget(self.btn_histogram)
+        self.thresholdLayout = QVBoxLayout()
+        threshold_type_layout = QHBoxLayout()
+        threshold_type_layout.addWidget(QLabel("Threshold Type:"))
+        threshold_type_layout.addWidget(self.thresholdType)
+        self.thresholdLayout.addLayout(threshold_type_layout)
 
-            # Frequency Filter Section UI Components
+        global_threshold_layout = QHBoxLayout()
+        global_threshold_layout.addWidget(QLabel("Global Threshold:"))
+        global_threshold_layout.addWidget(self.globalThreshold)
+        self.thresholdLayout.addLayout(global_threshold_layout)
+
+        kernel_size_threshold_layout = QHBoxLayout()
+        kernel_size_threshold_layout.addWidget(QLabel("Kernel Size:"))
+        kernel_size_threshold_layout.addWidget(self.kernelSizeThreshold)
+        self.thresholdLayout.addLayout(kernel_size_threshold_layout)
+
+        k_value_layout = QHBoxLayout()
+        k_value_layout.addWidget(QLabel("K Value:"))
+        k_value_layout.addWidget(self.kValue)
+        self.thresholdLayout.addLayout(k_value_layout)
+
+        self.thresholdLayout.addWidget(self.btn_threshold)
+
+        thresholding_layout.addLayout(self.thresholdLayout)
+        tab_widget.addTab(thresholding_frame, "Thresholding")
+
+        # Frequency Filter Tab
+        frequency_filter_frame = QFrame()
+        frequency_filter_layout = QVBoxLayout(frequency_filter_frame)
+
         self.freqType = QComboBox()
         self.freqType.addItems(["low_pass", "high_pass"])
 
         self.freqRadius = QSpinBox()
-        self.freqRadius.setRange(1, 100)  # Set reasonable range
-        self.freqRadius.setValue(10)  # Default cutoff frequency
+        self.freqRadius.setRange(1, 100)
+        self.freqRadius.setValue(10)
 
         self.btn_freq_filter = QPushButton("Apply Frequency Filter")
         self.btn_freq_filter.clicked.connect(self.apply_frequency_filter)
 
-        # Layout for Frequency Filter Parameters
-        self.freqLayout = QHBoxLayout()
-        self.freqLayout.addWidget(QLabel("Filter Type:"))
-        self.freqLayout.addWidget(self.freqType)
-        self.freqLayout.addWidget(QLabel("Radius:"))
-        self.freqLayout.addWidget(self.freqRadius)
+        self.freqLayout = QVBoxLayout()
+        freq_type_layout = QHBoxLayout()
+        freq_type_layout.addWidget(QLabel("Filter Type:"))
+        freq_type_layout.addWidget(self.freqType)
+        self.freqLayout.addLayout(freq_type_layout)
+
+        freq_radius_layout = QHBoxLayout()
+        freq_radius_layout.addWidget(QLabel("Radius:"))
+        freq_radius_layout.addWidget(self.freqRadius)
+        self.freqLayout.addLayout(freq_radius_layout)
+
         self.freqLayout.addWidget(self.btn_freq_filter)
 
-        # Add Layout to Main Layout
-        self.layout.addLayout(self.freqLayout)
+        frequency_filter_layout.addLayout(self.freqLayout)
+        tab_widget.addTab(frequency_filter_frame, "Frequency Filter")
 
-        # Hybrid Image Parameters
+        # Hybrid Image Tab
+        hybrid_image_frame = QFrame()
+        hybrid_image_layout = QVBoxLayout(hybrid_image_frame)
+
         self.cutoff1 = QSpinBox()
         self.cutoff1.setRange(1, 100)
         self.cutoff1.setValue(10)
@@ -245,52 +344,107 @@ class MainWindow(QMainWindow):
         self.type2 = QComboBox()
         self.type2.addItems(["lp", "hp"])
 
-        # Apply Hybrid Image Button
         self.btn_hybrid = QPushButton("Create Hybrid Image")
         self.btn_hybrid.clicked.connect(self.create_hybrid_image)
 
-        # Layout for Hybrid Image Parameters
-        self.hybridLayout = QHBoxLayout()
-        self.hybridLayout.addWidget(QLabel("Cutoff 1:"))
-        self.hybridLayout.addWidget(self.cutoff1)
-        self.hybridLayout.addWidget(QLabel("Type 1:"))
-        self.hybridLayout.addWidget(self.type1)
-        self.hybridLayout.addWidget(QLabel("Cutoff 2:"))
-        self.hybridLayout.addWidget(self.cutoff2)
-        self.hybridLayout.addWidget(QLabel("Type 2:"))
-        self.hybridLayout.addWidget(self.type2)
+        self.hybridLayout = QVBoxLayout()
+        cutoff1_layout = QHBoxLayout()
+        cutoff1_layout.addWidget(QLabel("Cutoff 1:"))
+        cutoff1_layout.addWidget(self.cutoff1)
+        self.hybridLayout.addLayout(cutoff1_layout)
+
+        type1_layout = QHBoxLayout()
+        type1_layout.addWidget(QLabel("Type 1:"))
+        type1_layout.addWidget(self.type1)
+        self.hybridLayout.addLayout(type1_layout)
+
+        cutoff2_layout = QHBoxLayout()
+        cutoff2_layout.addWidget(QLabel("Cutoff 2:"))
+        cutoff2_layout.addWidget(self.cutoff2)
+        self.hybridLayout.addLayout(cutoff2_layout)
+
+        type2_layout = QHBoxLayout()
+        type2_layout.addWidget(QLabel("Type 2:"))
+        type2_layout.addWidget(self.type2)
+        self.hybridLayout.addLayout(type2_layout)
+
         self.hybridLayout.addWidget(self.btn_hybrid)
 
-        # Add Layout to Main Layout
-        self.layout.addLayout(self.hybridLayout)
+        hybrid_image_layout.addLayout(self.hybridLayout)
+        tab_widget.addTab(hybrid_image_frame, "Hybrid Image")
 
-        # Equalization & Normalization Section
+        left_layout.addWidget(tab_widget)
+        main_layout.addWidget(left_frame)
+
+        # Right Frame with Control Buttons and Image Display
+        right_frame = QFrame()
+
+        control_frame=QFrame()
+        control_frame.setMaximumHeight(100)
+        control_layout = QHBoxLayout(control_frame)
+
+        right_layout = QVBoxLayout(right_frame)
+        right_layout.setAlignment(Qt.AlignHCenter)
+
+        # Control Buttons Frame
+        control_buttons_frame = QFrame()
+        control_buttons_layout = QHBoxLayout(control_buttons_frame)
+
+        self.btn_histogram = QPushButton("Show Histogram")
+        self.btn_histogram.clicked.connect(self.show_histogram)
+        control_buttons_layout.addWidget(self.btn_histogram)
+
         self.btn_equalize = QPushButton("Equalize Image")
         self.btn_equalize.clicked.connect(self.equalize)
-        self.layout.addWidget(self.btn_equalize)
+        control_buttons_layout.addWidget(self.btn_equalize)
 
         self.btn_normalize = QPushButton("Normalize Image")
         self.btn_normalize.clicked.connect(self.normalize)
-        self.layout.addWidget(self.btn_normalize)
+        control_buttons_layout.addWidget(self.btn_normalize)
 
-        # Active Contour (Snake)
         self.btn_snake = QPushButton("Active Contour (Snake)")
         # self.btn_snake.clicked.connect(self.run_snake)
-        self.layout.addWidget(self.btn_snake)
+        control_buttons_layout.addWidget(self.btn_snake)
 
-        # Image Processing Control Buttons
+        control_layout.addWidget(control_buttons_frame)
+
+        # Image Control Buttons Frame
+        image_control_buttons_frame = QFrame()
+        image_control_buttons_layout = QHBoxLayout(image_control_buttons_frame)
+
         self.btn_confirm = QPushButton("Confirm Edit")
         self.btn_confirm.clicked.connect(self.confirm_edit)
+        image_control_buttons_layout.addWidget(self.btn_confirm)
+
         self.btn_discard = QPushButton("Discard Edit")
         self.btn_discard.clicked.connect(self.discard_edit)
+        image_control_buttons_layout.addWidget(self.btn_discard)
+
         self.btn_reset = QPushButton("Reset Image")
         self.btn_reset.clicked.connect(self.reset_image)
+        image_control_buttons_layout.addWidget(self.btn_reset)
 
-        controlLayout = QHBoxLayout()
-        controlLayout.addWidget(self.btn_confirm)
-        controlLayout.addWidget(self.btn_discard)
-        controlLayout.addWidget(self.btn_reset)
-        self.layout.addLayout(controlLayout)
+        control_layout.addWidget(image_control_buttons_frame)
+
+        right_layout.addWidget(control_frame)
+
+        # Image Display Frame
+        image_display_frame = QFrame()
+        image_display_frame.setMaximumWidth(1200)
+        image_display_frame.setMinimumWidth(1200)
+        image_display_layout = QVBoxLayout(image_display_frame)
+
+        self.lbl_image = QLabel("No Image Loaded")
+        self.lbl_image.setAlignment(Qt.AlignCenter)
+        self.lbl_image.setStyleSheet("border: 2px solid black;")
+        image_display_layout.addWidget(self.lbl_image)
+
+        self.btn_load_image = QPushButton("Load Image")
+        self.btn_load_image.clicked.connect(self.load_image)
+        image_display_layout.addWidget(self.btn_load_image)
+
+        right_layout.addWidget(image_display_frame)
+        main_layout.addWidget(right_frame)
 
         # Image & Processor Variables
         self.image = None
@@ -372,7 +526,7 @@ class MainWindow(QMainWindow):
             for processor in self.processors.values():
                 processor.set_image(self.image)
             self.display_image(self.image)
-        if hybird == True:
+        elif hybird == True:
             self.extra_image = cv2.imread(file_path)
             if self.extra_image is None:
                 QMessageBox.critical(self, "Error", "Failed to load image.")
