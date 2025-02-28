@@ -1,6 +1,7 @@
 import sys
 import cv2
 import numpy as np
+import os
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, 
@@ -14,7 +15,7 @@ import sys
 import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,
+    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
     QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout
 )
 from PyQt5.QtGui import QPixmap, QImage
@@ -33,18 +34,22 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout()
         central_widget.setLayout(main_layout)
 
-        # Left Frame with TabWidget
+        #? Left Frame with TabWidget
         left_frame = QFrame()
-        left_frame.setMaximumWidth(500)
+        left_frame.setObjectName("left_frame")
         left_layout = QVBoxLayout(left_frame)
+        
         tab_widget = QTabWidget()
+        tab_widget.setObjectName("tab_widget")
 
         # Noise and Filter Tab
         noise_and_filter_frame = QFrame()
+        noise_and_filter_frame.setObjectName("noise_and_filter_frame")
         noise_and_filter_layout = QVBoxLayout(noise_and_filter_frame)
 
         # Noise Frame
         noise_frame = QFrame()
+        noise_frame.setObjectName("noise_frame")
         noise_layout = QVBoxLayout(noise_frame)
 
         # Noise UI Components
@@ -114,6 +119,7 @@ class MainWindow(QMainWindow):
 
         # Filter Frame
         filter_frame = QFrame()
+        filter_frame.setObjectName("filter_frame")
         filter_layout = QVBoxLayout(filter_frame)
 
         # Filter UI Components
@@ -156,6 +162,7 @@ class MainWindow(QMainWindow):
 
         # Edge Detection Tab
         edge_detection_frame = QFrame()
+        edge_detection_frame.setObjectName("edge_detection_frame")
         edge_detection_layout = QVBoxLayout(edge_detection_frame)
 
         self.edgeType = QComboBox()
@@ -249,6 +256,7 @@ class MainWindow(QMainWindow):
 
         # Thresholding Tab
         thresholding_frame = QFrame()
+        thresholding_frame.setObjectName("thresholding_frame")
         thresholding_layout = QVBoxLayout(thresholding_frame)
 
         self.thresholdType = QComboBox()
@@ -298,6 +306,7 @@ class MainWindow(QMainWindow):
 
         # Frequency Filter Tab
         frequency_filter_frame = QFrame()
+        frequency_filter_frame.setObjectName("frequency_filter_frame")
         frequency_filter_layout = QVBoxLayout(frequency_filter_frame)
 
         self.freqType = QComboBox()
@@ -328,6 +337,7 @@ class MainWindow(QMainWindow):
 
         # Hybrid Image Tab
         hybrid_image_frame = QFrame()
+        hybrid_image_frame.setObjectName("hybrid_image_frame")
         hybrid_image_layout = QVBoxLayout(hybrid_image_frame)
 
         self.cutoff1 = QSpinBox()
@@ -376,7 +386,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(tab_widget)
         main_layout.addWidget(left_frame)
 
-        # Right Frame with Control Buttons and Image Display
+        #? Right Frame with Control Buttons and Image Display
         right_frame = QFrame()
 
         control_frame=QFrame()
@@ -408,6 +418,8 @@ class MainWindow(QMainWindow):
 
         control_layout.addWidget(control_buttons_frame)
 
+        control_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+
         # Image Control Buttons Frame
         image_control_buttons_frame = QFrame()
         image_control_buttons_layout = QHBoxLayout(image_control_buttons_frame)
@@ -430,8 +442,8 @@ class MainWindow(QMainWindow):
 
         # Image Display Frame
         image_display_frame = QFrame()
-        image_display_frame.setMaximumWidth(1200)
-        image_display_frame.setMinimumWidth(1200)
+        image_display_frame.setMaximumWidth(1400)
+        image_display_frame.setMinimumWidth(1400)
         image_display_layout = QVBoxLayout(image_display_frame)
 
         self.lbl_image = QLabel("No Image Loaded")
@@ -733,8 +745,16 @@ class MainWindow(QMainWindow):
             self.display_image(self.image)
         else:
             raise ValueError("No original image available. Load an image first.")
+
 def main():
     app = QApplication(sys.argv)
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    qss_path = os.path.join(script_dir, "../resources/styles.qss")
+    
+    with open(qss_path, "r") as file:
+        app.setStyleSheet(file.read())
+    
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
