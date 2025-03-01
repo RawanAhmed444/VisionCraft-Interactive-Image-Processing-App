@@ -836,7 +836,6 @@ class MainWindow(QMainWindow):
         self.modified_image = self.processors['image'].get_normalized_image()
         self.display_image(self.modified_image)
 
-
     def load_image(self, hybird = False):
         """
         Load an image from disk and display it in the UI.
@@ -887,58 +886,7 @@ class MainWindow(QMainWindow):
             self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio
         ))
     
-    def apply_filters(self, filter_type="median", **kwargs):
-        """
-        Example: Using the factory  to create a NoiseProcessor.
-        """
-        if self.modified_image is not None:
-            self.confirm_edit()
-        if self.modified_image is not None:
-            filtered_image = self.processors['noise'].apply_filters() #average (kernel_size=3), gaussian (kernel_size=3, sigma=1.0), median (kernel_size=3)
-            self.modified_image = filtered_image[filter_type]
-            self.display_image(self.modified_image, modified = True)
-        else:
-            raise ValueError("No noisy image available. Apply noise first.")        
-     
-  
-    def detect_edges(self, **kwargs):
-        """
-        Example: Using the factory to create an EdgeDetector.
-        """ 
-        if self.modified_image is not None:
-            self.confirm_edit()
-        
-        if self.image is not None:
-            edge_map = self.processors['edge_detector'].detect_edges(**kwargs)
-            # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
-            self.modified_image = edge_map 
-            self.display_image(self.modified_image, modified = True)
-        else:    
-            raise ValueError("No image available. Load an image first.")     
 
-    def show_histograms_with_CDF(self, **kwargs):
-        """
-        Example: Using the factory to create a HistogramProcessor.
-        """
-           
-        if self.image is not None:
-            self.processors['histogram'].plot_all_histograms(**kwargs) # grayscale, rgb
-        else:
-            raise ValueError("No image available. Load an image first.")
-    
-    def apply_frequency_filter(self, filter_type="low_pass", **kwargs):
-        """
-        Example: Using the factory to create a FrequencyProcessor.
-        """ 
-        if self.modified_image is not None:
-            self.confirm_edit()
-            
-        if self.image is not None:
-            filtered_image = self.processors['frequency'].apply_filter(filter_type, **kwargs) # low_pass (radius=10), high_pass (radius=10)
-            self.modified_image = filtered_image    
-            self.display_image(self.modified_image, modified = True)
-        else:
-            raise ValueError("No image available. Load an image first.")
     def hybrid_image(self, **kwargs):
         """
         Example: Using the factory to create a HybridProcessor.
@@ -955,29 +903,6 @@ class MainWindow(QMainWindow):
         else:
             raise ValueError("No image available. Load an image first.")
 
-    # def noise_and_filter(self):
-        """
-        Demonstrate noise addition + filtering.
-        """
-        
-        if self.image is None:
-            QMessageBox.warning(self, "Warning", "Load an image first.")
-            return
-
-        # Use factory to create a noise processor
-        noise_proc = ProcessorFactory.create_processor("noise", self.image)
-        # Add Gaussian noise
-        noisy_img = noise_proc.add_gaussian_noise(mean=0, std=25)
-
-        # Then filter the noisy image
-        noise_proc.set_image(noisy_img)
-        filtered_imgs = noise_proc.apply_filters()  # average, gauss, median
-        # Let's just display the median filter result
-        median_filtered = filtered_imgs["Median Filter"]
-        
-        # Convert to BGR for display
-        bgr_display = cv2.cvtColor(median_filtered, cv2.COLOR_GRAY2BGR)
-        self.display_image(bgr_display)
     def equalize(self):
         """
         Example: Using the factory to create a HistogramProcessor.
