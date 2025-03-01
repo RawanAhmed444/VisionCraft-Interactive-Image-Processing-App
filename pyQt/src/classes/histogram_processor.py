@@ -1,10 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from utils import convert_to_grayscale
-from functions.histogram_functions import compute_histogram, compute_cdf, normalize, apply_histogram_equalization
+from functions.histogram_functions import (
+    compute_histogram, compute_cdf, normalize, apply_histogram_equalization,
+    draw_histo_and_distribution_curve, draw_image_histogram_and_distribution
+)
 
 class HistogramProcessor:
-    """Handles histogram computation, CDF calculation, normalization, and equalization for grayscale and color images."""
+    """Handles histogram computation, CDF calculation, normalization, equalization, and visualization for grayscale and color images."""
 
     def __init__(self):
         self.image = None
@@ -69,7 +72,7 @@ class HistogramProcessor:
 
     def plot_histogram_with_distribution(self, channel="Grayscale"):
         """
-        Plots histogram and its distribution function (CDF).
+        Plots histogram and its distribution function (CDF) for a specific channel.
 
         :param channel: 'Grayscale' or 'Red', 'Green', 'Blue'.
         """
@@ -113,3 +116,35 @@ class HistogramProcessor:
                 self.plot_histogram_with_distribution(channel)
         else:
             self.plot_histogram_with_distribution()
+
+    def plot_histogram_with_normal_distribution(self, channel="Grayscale"):
+        """
+        Plots histogram with an overlaid normal distribution curve for a specific channel.
+
+        :param channel: 'Grayscale' or 'Red', 'Green', 'Blue'.
+        """
+        if self.histograms is None:
+            raise ValueError("No histogram available. Set an image first.")
+        
+        if self.is_color and channel not in ["Red", "Green", "Blue"]:
+            raise ValueError("Invalid channel. Choose 'Red', 'Green', or 'Blue'.")
+
+        # Select data based on the channel
+        if self.is_color:
+            idx = ["Red", "Green", "Blue"].index(channel)
+            data = self.image[:, :, idx].flatten()
+        else:
+            data = self.image.flatten()
+
+        # Plot histogram with normal distribution curve
+        draw_histo_and_distribution_curve(data, bins=256)
+
+    def plot_all_histograms_with_normal_distribution(self):
+        """
+        Plots histograms with normal distribution curves for all channels (Grayscale or RGB).
+        """
+        if self.is_color:
+            for channel in ["Red", "Green", "Blue"]:
+                self.plot_histogram_with_normal_distribution(channel)
+        else:
+            self.plot_histogram_with_normal_distribution()

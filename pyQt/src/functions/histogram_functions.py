@@ -11,12 +11,11 @@ def compute_histogram(image):
     Returns:
         hist: histogram list of pixels intensities
     """
-    shape = image.shape
-    size = shape[0]*shape[1]
-    hist = np.zeros(size, dtype=int)
-    for pixel in image.flatten():
-        hist[pixel] += 1
+    if len(image.shape) != 2:
+        raise ValueError("Input image must be grayscale (2D array).")
 
+    # Compute histogram with 256 bins
+    hist, _ = np.histogram(image, bins=256, range=(0, 256))
     return hist
 
 
@@ -86,15 +85,53 @@ def draw_histo_and_distribution_curve(data, bins):
     
     return x, y
 
+def draw_histo_and_distribution_curve(data, bins):
+    """
+    Plots a histogram with an overlaid normal distribution curve.
+
+    Args:
+        data (ndarray): Flattened grayscale or color channel image.
+        bins (int): Number of bins for the histogram.
+
+    Returns:
+        x (ndarray): X values for the normal distribution curve.
+        y (ndarray): Y values for the normal distribution curve.
+    """
+    plt.figure(figsize=(8, 6))
+    
+    # Plot histogram
+    plt.hist(data, bins=bins, density=True, edgecolor='black', alpha=0.7, label='Histogram')
+    
+    # Compute normal distribution curve
+    mean, std = np.mean(data), np.std(data)
+    x = np.linspace(min(data), max(data), 100)
+    y = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std) ** 2)
+    
+    # Overlay normal distribution curve
+    plt.plot(x, y, color='red', label='Normal Distribution')
+    
+    # Add labels and title
+    plt.title('Histogram with Distribution Curve')
+    plt.xlabel('Values')
+    plt.ylabel('Density')
+    plt.legend()
+    
+    # Show plot
+    plt.show()
+    
+    return x, y
+
 def draw_image_histogram_and_distribution(image, bins=256):
     """
-    takes an image and plots its histogram with an overlaid normal distribution curve.
-    
+    Takes an image and plots its histogram with an overlaid normal distribution curve.
+
+    Args:
+        image (ndarray): Input grayscale or single-channel image.
+        bins (int): Number of bins for the histogram.
+
     Returns:
-    x (numpy array): X values for the normal distribution curve.
-    y (numpy array): Y values for the normal distribution curve.
+        x (ndarray): X values for the normal distribution curve.
+        y (ndarray): Y values for the normal distribution curve.
     """
     flattened_data = image.flatten()
     return draw_histo_and_distribution_curve(flattened_data, bins=bins)
-
-
