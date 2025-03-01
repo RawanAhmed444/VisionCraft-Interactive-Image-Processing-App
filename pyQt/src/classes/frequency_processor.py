@@ -1,6 +1,7 @@
 import numpy as np
 from functions.frequency_functions import ideal_filter, calculate_dft, filter_image
 from functions.hybrid_functions import hybrid_filter
+from utils import convert_to_grayscale
 class FrequencyProcessor:
     def __init__(self): 
         self.image = None   
@@ -14,7 +15,9 @@ class FrequencyProcessor:
             raise ValueError("No image set. Please call set_image() first.")
         
         mask = ideal_filter(self.dft_shifted, cutoff, filter_type)
+    
         self.filtered_image = filter_image(self.dft_shifted, mask)
+        print(self.filtered_image.shape)
         return self.filtered_image 
     
     def create_hybrid_image(self, img2, cutoff1=10, cutoff2=10, type1="lp", type2="lp"):
@@ -25,8 +28,10 @@ class FrequencyProcessor:
         if image is None or not isinstance(image, np.ndarray):
             raise ValueError("Invalid image input. Expected a NumPy array.")
         
-        self.image = image
-        self.dft_shifted, self.magnitude_spectrum = calculate_dft(image)
+        self.image = convert_to_grayscale(image)
+        self.dft_shifted, self.magnitude_spectrum = calculate_dft(self.image)
+        print(self.image.shape)
+        print(self.dft_shifted.shape)
 
     def get_magnitude_spectrum(self):
         """Returns the magnitude spectrum of the image"""

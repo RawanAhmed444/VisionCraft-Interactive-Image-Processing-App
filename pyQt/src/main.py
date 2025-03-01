@@ -793,11 +793,37 @@ class MainWindow(QMainWindow):
     
     def show_histogram(self):
         self.processors['histogram'].plot_all_histograms()
-
     def apply_frequency_filter(self):
-        self.modified_image = self.processors['frequency'].apply_filter("low_pass")
-        self.display_image(self.modified_image)
+        """
+        Applies a frequency filter to the image based on the selected filter type and parameters from the UI.
+        """
+        # Retrieve frequency filter parameters from the params dictionary
+        frequency_params = self.params.get("frequency_filter", {})
+       
+        # Call the _apply_frequency_filter function with the retrieved parameters
+        self._apply_frequency_filter(**frequency_params)
+        print("Applying frequency filter:", frequency_params)
+        self.display_image(self.modified_image, modified=True)
+        
 
+    def _apply_frequency_filter(self, **kwargs):
+        """
+        Applies a frequency filter to the image based on the specified filter type and parameters.
+
+        Args:
+            filter_type (str): Type of frequency filter to apply. Options: "low_pass", "high_pass".
+            **kwargs: Additional parameters for the frequency filter (e.g., radius).
+        """
+        if self.modified_image is not None:
+            self.confirm_edit()  # Confirm any previous edits before applying frequency filtering
+
+        if self.image is not None:
+            # Apply frequency filter using the specified parameters
+            filtered_image = self.processors['frequency'].apply_filter(**kwargs)
+            self.modified_image = filtered_image
+        else:
+            raise ValueError("No image loaded. Please load an image before applying frequency filtering.")
+    
     def create_hybrid_image(self):
         self.modified_image = self.processors['frequency'].create_hybrid_image(self.image, self.extra_image)
         self.display_image(self.modified_image)
@@ -836,7 +862,7 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Info", "No file selected.")
 
-    def display_image(self, img, hybird = False, modified = False):
+    def display_image(self, img, hybrid=False, modified=False):
         """
         Convert a NumPy BGR image to QImage and display it in lbl_image.
         """
@@ -849,12 +875,18 @@ class MainWindow(QMainWindow):
         else:
             # Grayscale
             h, w = img.shape
-            qimg = QImage(img.data, w, h, w, QImage.Format_Indexed8)
+            # Ensure the image is in uint8 format
+            if img.dtype != np.uint8:
+                img = img.astype(np.uint8)
+            # Convert the NumPy array to bytes
+            img_bytes = img.tobytes()
+            qimg = QImage(img_bytes, w, h, w, QImage.Format_Indexed8)
         
         pixmap = QPixmap.fromImage(qimg)
-        self.lbl_image.setPixmap(pixmap.scaled(self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio))
-
-   
+        self.lbl_image.setPixmap(pixmap.scaled(
+            self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio
+        ))
+    
     def apply_filters(self, filter_type="median", **kwargs):
         """
         Example: Using the factory  to create a NoiseProcessor.
