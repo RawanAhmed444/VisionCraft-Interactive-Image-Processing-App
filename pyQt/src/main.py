@@ -730,10 +730,38 @@ class MainWindow(QMainWindow):
         else:
             raise ValueError("No image loaded. Please load an image before applying a filter.")
     def detect_edges(self):
-        edge_type = self.edge_detection_tab.edgeType.currentText()
-        self.modified_image = self.processors['edge_detector'].detect_edges(edge_type)
-        self.display_image(self.modified_image)
+        """
+        Detects edges in the image based on the selected edge detection type and parameters from the UI.
+        """
+        # Retrieve edge detection parameters from the params dictionary
+        edge_params = self.params.get("edge_detection", {})
+        edge_type = edge_params.get("edge_type", "sobel")  # Default to "sobel" if not specified
 
+        # Call the _detect_edges function with the retrieved parameters
+        self._detect_edges(**edge_params)
+        print("Detecting edges:", edge_params)
+        
+        self.display_image(self.modified_image, modified=True)
+
+    
+    def _detect_edges(self, edge_type="sobel", **kwargs):
+        """ 
+        Detects edges in the image based on the specified edge detection type and parameters.
+
+        Args:
+            edge_type (str): Type of edge detection to apply. Options: "sobel", "canny", "prewitt", "roberts".
+            **kwargs: Additional parameters for the edge detection (e.g., kernel_size, sigma, thresholds).
+        """
+        if self.modified_image is not None:
+            self.confirm_edit()  # Confirm any previous edits before applying edge detection
+
+        if self.image is not None:
+            # Apply edge detection using the specified parameters
+            edge_map = self.processors['edge_detector'].detect_edges(**kwargs)
+            self.modified_image = edge_map
+        else:
+            raise ValueError("No image loaded. Please load an image before detecting edges.")
+    
     def apply_thresholding(self):
         threshold_type = self.thresholding_tab.thresholdType.currentText()
         self.modified_image = self.processors['thresholding'].apply_threshold(threshold_type)
@@ -830,7 +858,7 @@ class MainWindow(QMainWindow):
         else:    
             raise ValueError("No image available. Load an image first.")
     
-    def detect_edges(self, edge_type="sobel", **kwargs):
+    def detect_edges(self, **kwargs):
         """
         Example: Using the factory to create an EdgeDetector.
         """ 
@@ -838,7 +866,7 @@ class MainWindow(QMainWindow):
             self.confirm_edit()
         
         if self.image is not None:
-            edge_map = self.processors['edge_detector'].detect_edges(edge_type, **kwargs)
+            edge_map = self.processors['edge_detector'].detect_edges(**kwargs)
             # sobel (kernal_size=3, sigma=1.0), canny (low_threshold=50, high_threshold=150, max_edge_val=255, min_edge_val=0), prewitt (threshold=50, value=255), roberts
             self.modified_image = edge_map 
             self.display_image(self.modified_image, modified = True)
