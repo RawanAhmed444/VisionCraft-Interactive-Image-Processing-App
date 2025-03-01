@@ -1,6 +1,6 @@
 import numpy as np
 from functions.thresholding_functions import globalthresholding, localthresholding
-
+from utils import convert_to_grayscale
 class ThresholdingProcessor:
     """Applies global or local thresholding on an image."""
     
@@ -62,7 +62,7 @@ class ThresholdingProcessor:
         if image is None or not isinstance(image, np.ndarray):
             raise ValueError("Invalid image input. Expected a NumPy array.")
         
-        self.image = image
+        self.image = convert_to_grayscale(image)
 
     def get_binary_image(self):
         """

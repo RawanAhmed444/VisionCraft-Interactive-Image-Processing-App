@@ -16,7 +16,7 @@ def globalthresholding(image, T = 128, value = 255):
     return binary_img
 
 
-def localthresholding(image, kernal = 4, k = 2):
+def localthresholding(image, kernal = 5, k = 2):
     """
     Local thresholding using Niblack's method.
     """
@@ -28,14 +28,29 @@ def localthresholding(image, kernal = 4, k = 2):
     padded_image = np.pad(image, pad, mode='constant', constant_values=0) #may be needed to implemented on my own
     
     binary_img = np.zeros_like(image, dtype=np.uint8)
-    
+   # Apply local thresholding
     for i in range(image.shape[0]):
         for j in range(image.shape[1]):
-            neighbor = padded_image[i:i+kernal, j:j+kernal]
-            mean = np.mean(neighbor)
-            std = np.std(neighbor)    
-            
+            # Extract the local neighborhood
+            neighbor = padded_image[i:i + kernal, j:j + kernal]
+
+            # Debug: Print the shape of the neighbor
+            if neighbor.shape != (kernal, kernal):
+                print(f"Warning: Invalid neighbor shape at ({i}, {j}): {neighbor.shape}")
+                continue  # Skip this pixel if the neighbor is invalid
+
+            # Calculate mean and standard deviation of the neighborhood
+            mean = np.mean(neighbor, axis=(0, 1))
+            std = np.std(neighbor, axis=(0, 1))
+
+            # Calculate the threshold using Niblack's method
             T = mean + k * std
-            if image[i,j] > T :
+
+            # Debug: Print the threshold and pixel value
+            print(f"Pixel ({i}, {j}): T = {T}, image[i,j] = {image[i, j]}")
+
+            # Apply the threshold
+            if image[i, j] > T:
                 binary_img[i, j] = 255
+
     return binary_img

@@ -649,9 +649,7 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, QCheckBox):
                 self.params[tab_name][key] = widget.isChecked()
         
-        print(self.params[tab_name])
-
-        
+        print(self.params[tab_name])        
 
     def load_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
@@ -743,8 +741,7 @@ class MainWindow(QMainWindow):
         
         self.display_image(self.modified_image, modified=True)
 
-    
-    def _detect_edges(self, edge_type="sobel", **kwargs):
+    def _detect_edges(self, **kwargs):
         """ 
         Detects edges in the image based on the specified edge detection type and parameters.
 
@@ -763,10 +760,37 @@ class MainWindow(QMainWindow):
             raise ValueError("No image loaded. Please load an image before detecting edges.")
     
     def apply_thresholding(self):
-        threshold_type = self.thresholding_tab.thresholdType.currentText()
-        self.modified_image = self.processors['thresholding'].apply_threshold(threshold_type)
-        self.display_image(self.modified_image)
+        """
+        Applies thresholding to the image based on the selected thresholding type and parameters from the UI.
+        """
+        # Retrieve thresholding parameters from the params dictionary
+        threshold_params = self.params.get("thresholding", {})
+        threshold_type = threshold_params.get("threshold_type", "global")  # Default to "global" if not specified
+        # Call the _apply_thresholding function with the retrieved parameters
+        print("Applying thresholding:", threshold_params)
 
+        self._apply_thresholding( **threshold_params)
+        self.display_image(self.modified_image, modified=True)
+        
+
+    def _apply_thresholding(self,  **kwargs):
+        """
+        Applies thresholding to the image based on the specified thresholding type and parameters.
+
+        Args:
+            threshold_type (str): Type of thresholding to apply. Options: "global", "local".
+            **kwargs: Additional parameters for the thresholding (e.g., threshold_value, kernel_size, k_value).
+        """
+        if self.modified_image is not None:
+            self.confirm_edit()  # Confirm any previous edits before applying thresholding
+
+        if self.image is not None:
+            # Apply thresholding using the specified parameters
+            thresholded_image = self.processors['thresholding'].apply_thresholding(**kwargs)
+            self.modified_image = thresholded_image
+        else:
+            raise ValueError("No image loaded. Please load an image before applying thresholding.")
+    
     def show_histogram(self):
         self.processors['histogram'].plot_all_histograms()
 
@@ -844,20 +868,7 @@ class MainWindow(QMainWindow):
         else:
             raise ValueError("No noisy image available. Apply noise first.")        
      
-    def apply_thresholding(self, threshold_type="global", **kwargs):
-        """
-        Example: Using the factory to create a ThresholdingProcessor.
-        """ 
-        if self.modified_image is not None:
-            self.confirm_edit()
-            
-        if self.modified_image is not None:
-            thresholded_image = self.processors['thresholding'].apply_threshold(threshold_type, **kwargs) # threshold_type : (local:  kernel=4, k=2), (global: T=128)
-            self.modified_image = thresholded_image
-            self.display_image(self.modified_image, modified = True)
-        else:    
-            raise ValueError("No image available. Load an image first.")
-    
+  
     def detect_edges(self, **kwargs):
         """
         Example: Using the factory to create an EdgeDetector.
