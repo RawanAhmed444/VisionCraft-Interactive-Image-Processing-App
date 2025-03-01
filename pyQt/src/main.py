@@ -4,9 +4,11 @@ import numpy as np
 import os
 
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, 
-    QVBoxLayout, QWidget, QMessageBox
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTabWidget, QComboBox, QSpinBox, QDoubleSpinBox, 
+    QPushButton, QLabel, QSizePolicy, QSpacerItem
 )
+from PyQt5.QtCore import Qt
+
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 
@@ -16,7 +18,7 @@ import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
-    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout
+    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox
 )
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
@@ -394,10 +396,36 @@ class MainWindow(QMainWindow):
         # Central widget and layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout()
-        central_widget.setLayout(main_layout)
+        self.main_layout = QHBoxLayout()
+        central_widget.setLayout(self.main_layout)
+        
+        self.init_ui(self.main_layout)
 
-        #? Left Frame with TabWidget
+        # self.noise_filter_tab = None
+        # self.edge_detection_tab = None
+        # self.thresholding_tab = None
+        # self.frequency_filter_tab = None
+        # self.hybrid_image_tab = None
+        
+        # Single data structure to store all parameters
+        self.params = {
+            "noise_filter": {},
+            "edge_detection": {},
+            "thresholding": {},
+            "frequency_filter": {},
+            "hybrid_image": {}
+        }
+        
+        self.connect_signals()
+        # Image & Processor Variables
+        self.image = None
+        self.original_image = None
+        self.modified_image = None
+        self.extra_image = None
+        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
+
+
+    def init_ui(self, main_layout):
         left_frame = QFrame()
         left_frame.setObjectName("left_frame")
         left_layout = QVBoxLayout(left_frame)
@@ -413,15 +441,10 @@ class MainWindow(QMainWindow):
         self.edge_detection_tab = EdgeDetectionTab(self)
         tab_widget.addTab(self.edge_detection_tab, "Edge Detection")
 
-
         # Thresholding Tab
         self.thresholding_tab = ThresholdingTab(self)
         tab_widget.addTab(self.thresholding_tab, "Thresholding")
 
-        # Edge Detection Tab
-        self.edge_detection_tab = EdgeDetectionTab(self)
-        tab_widget.addTab(self.edge_detection_tab, "Edge Detection")
-        
         # Frequency Filter Tab
         self.frequency_filter_tab = FrequencyFilterTab(self)
         tab_widget.addTab(self.frequency_filter_tab, "Frequency Filter")
@@ -429,19 +452,20 @@ class MainWindow(QMainWindow):
         # Hybrid Image Tab
         self.hybrid_image_tab = HybridImageTab(self)
         tab_widget.addTab(self.hybrid_image_tab, "Hybrid Image")
-
+        
         left_layout.addWidget(tab_widget)
         main_layout.addWidget(left_frame)
-
+        
         #? Right Frame with Control Buttons and Image Display
         right_frame = QFrame()
-
-        control_frame=QFrame()
-        control_frame.setMaximumHeight(100)
-        control_layout = QHBoxLayout(control_frame)
-
+        right_frame.setObjectName("right_frame")
         right_layout = QVBoxLayout(right_frame)
         right_layout.setAlignment(Qt.AlignHCenter)
+        
+        # Control Buttons Frame
+        control_frame = QFrame()
+        control_frame.setMaximumHeight(100)
+        control_layout = QHBoxLayout(control_frame)
 
         # Control Buttons Frame
         control_buttons_frame = QFrame()
@@ -465,7 +489,8 @@ class MainWindow(QMainWindow):
 
         control_layout.addWidget(control_buttons_frame)
 
-        control_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        # Add a spacer to push the next frame to the right
+        control_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         # Image Control Buttons Frame
         image_control_buttons_frame = QFrame()
@@ -482,9 +507,9 @@ class MainWindow(QMainWindow):
         self.btn_reset = QPushButton("Reset Image")
         self.btn_reset.clicked.connect(self.reset_image)
         image_control_buttons_layout.addWidget(self.btn_reset)
-
         control_layout.addWidget(image_control_buttons_frame)
 
+        # Add the control frame to the right layout
         right_layout.addWidget(control_frame)
 
         # Image Display Frame
@@ -502,15 +527,114 @@ class MainWindow(QMainWindow):
         self.btn_load_image.clicked.connect(self.load_image)
         image_display_layout.addWidget(self.btn_load_image)
 
+        # Add the image display frame to the right layout
         right_layout.addWidget(image_display_frame)
-        main_layout.addWidget(right_frame)
 
-        # Image & Processor Variables
-        self.image = None
-        self.original_image = None
-        self.modified_image = None
-        self.extra_image = None
-        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
+        # Add the right frame to the main layout
+        main_layout.addWidget(right_frame)
+    
+    def connect_signals(self):
+        # Noise & Filter Tab
+        noise_filter_ui = {
+            "noise_type": self.noise_filter_tab.noiseType,
+            "noise_intensity": self.noise_filter_tab.noiseIntensity,
+            "gaussian_mean": self.noise_filter_tab.gaussianMean,
+            "gaussian_std": self.noise_filter_tab.gaussianStd,
+            "salt_prob": self.noise_filter_tab.saltProb,
+            "pepper_prob": self.noise_filter_tab.pepperProb
+        }
+        for widget in noise_filter_ui.values():
+            if isinstance(widget, QComboBox):
+                # Connect QComboBox's currentTextChanged signal
+                widget.currentTextChanged.connect(lambda: self.update_params("noise_filter", noise_filter_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                widget.valueChanged.connect(lambda: self.update_params("noise_filter", noise_filter_ui))      
+        # Edge Detection Tab
+        self.edge_detection_ui = {
+            "edge_type": self.edge_detection_tab.edgeType,
+            "sobel_kernel_size": self.edge_detection_tab.sobelKernelSize,
+            "sobel_sigma": self.edge_detection_tab.sobelSigma,
+            "canny_low_threshold": self.edge_detection_tab.cannyLowThreshold,
+            "canny_high_threshold": self.edge_detection_tab.cannyHighThreshold,
+            "canny_max_edge_val": self.edge_detection_tab.cannyMaxEdgeVal,
+            "canny_min_edge_val": self.edge_detection_tab.cannyMinEdgeVal,
+            "prewitt_threshold": self.edge_detection_tab.prewittThreshold,
+            "prewitt_value": self.edge_detection_tab.prewittValue
+        }
+        # Edge Detection Tab
+        for widget in self.edge_detection_ui.values():
+            if isinstance(widget, QComboBox):
+                # Connect QComboBox's currentTextChanged signal
+                widget.currentTextChanged.connect(lambda: self.update_params("edge_detection", self.edge_detection_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                widget.valueChanged.connect(lambda: self.update_params("edge_detection", self.edge_detection_ui))
+ 
+        # Thresholding Tab
+        self.thresholding_ui = {
+            "threshold_type": self.thresholding_tab.thresholdType,
+            "global_threshold": self.thresholding_tab.globalThreshold,
+            "kernel_size": self.thresholding_tab.kernelSizeThreshold,
+            "k_value": self.thresholding_tab.kValue
+        }
+        for widget in self.thresholding_ui.values():
+            if isinstance(widget, QComboBox):
+                widget.currentTextChanged.connect(lambda: self.update_params("thresholding", self.thresholding_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                widget.valueChanged.connect(lambda: self.update_params("thresholding", self.thresholding_ui))
+
+        # Frequency Filter Tab
+        self.frequency_filter_ui = {
+            "filter_type": self.frequency_filter_tab.freqType,
+            "radius": self.frequency_filter_tab.freqRadius
+        }
+        for widget in self.frequency_filter_ui.values():
+            if isinstance(widget, QComboBox):
+                widget.currentTextChanged.connect(lambda: self.update_params("frequency_filter", self.frequency_filter_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                widget.valueChanged.connect(lambda: self.update_params("frequency_filter", self.frequency_filter_ui))
+
+        # Hybrid Image Tab
+        self.hybrid_image_ui = {
+            "cutoff1": self.hybrid_image_tab.cutoff1,
+            "cutoff2": self.hybrid_image_tab.cutoff2,
+            "type1": self.hybrid_image_tab.type1,
+            "type2": self.hybrid_image_tab.type2
+        }
+        for widget in self.hybrid_image_ui.values():
+            if isinstance(widget, QComboBox):
+                widget.currentTextChanged.connect(lambda: self.update_params("hybrid_image", self.hybrid_image_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                widget.valueChanged.connect(lambda: self.update_params("hybrid_image", self.hybrid_image_ui))    
+        # Connect apply buttons
+        self.noise_filter_tab.btn_noise.clicked.connect(self.apply_noise)
+        # self.edge_detection_tab.btn_edge_detection.clicked.connect(lambda: self.process_image("detect_edges", **self.params["edge_detection"]))
+        # self.thresholding_tab.btn_threshold.clicked.connect(lambda: self.process_image("apply_thresholding", **self.params["thresholding"]))
+        # self.frequency_filter_tab.btn_freq_filter.clicked.connect(lambda: self.process_image("apply_frequency_filter", **self.params["frequency_filter"]))
+        # self.hybrid_image_tab.btn_hybrid.clicked.connect(lambda: self.process_image("create_hybrid_image", **self.params["hybrid_image"]))
+    
+    def update_params(self, tab_name, ui_components):
+        """
+        Update the parameters for a specific tab based on the UI components.
+        
+        Args:
+            tab_name (str): The name of the tab (e.g., "noise_filter").
+            ui_components (dict): A dictionary of UI components and their keys.
+        """
+        print("Updating params for", tab_name)
+        self.params[tab_name] = {}
+        for key, widget in ui_components.items():
+            if isinstance(widget, (QComboBox, QLineEdit)):
+                self.params[tab_name][key] = widget.currentText() if isinstance(widget, QComboBox) else widget.text()
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                self.params[tab_name][key] = widget.value()
+            elif isinstance(widget, QCheckBox):
+                self.params[tab_name][key] = widget.isChecked()
+        
+        print(self.params[tab_name])
+
+        
 
     def load_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
@@ -529,10 +653,37 @@ class MainWindow(QMainWindow):
         self.lbl_image.setPixmap(pixmap.scaled(self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio))
 
     def apply_noise(self):
-        noise_type = self.noise_filter_tab.noiseType.currentText()
-        self.modified_image = self.processors['noise'].add_noise(noise_type)
-        self.display_image(self.modified_image)
+        """
+        Applies noise to the image based on the selected noise type and parameters from the UI.
+        """
+        # Retrieve noise parameters from the params dictionary
+        noise_params = self.params["noise_filter"]
+        # noise_type = noise_params.get("noise_type", "uniform")  # Default to "uniform" if not specified
 
+        # Call the add_noise function with the retrieved parameters
+        self.add_noise(**noise_params)
+        print("Applying noise:", noise_params)
+        self.display_image(self.modified_image)
+        
+    def add_noise(self, **kwargs):
+        """
+        Adds noise to the image based on the specified noise type and parameters.
+
+        Args:
+            noise_type (str): Type of noise to add. Options: "uniform", "gaussian", "salt_pepper".
+            **kwargs: Additional parameters for the noise (e.g., intensity, mean, std, salt_prob, pepper_prob).
+        """
+        if self.modified_image is not None:
+            self.confirm_edit()  # Confirm any previous edits before applying new noise
+
+        if self.image is not None:
+            # Call the noise processor with the specified noise type and parameters
+            noisy_image = self.processors['noise'].add_noise(**kwargs)
+            self.modified_image = noisy_image
+            self.display_image(self.modified_image, modified=True)
+        else:
+            raise ValueError("No image loaded. Please load an image before applying noise.")
+            
     def apply_filter(self):
         filter_type = self.noise_filter_tab.filterType.currentText()
         kernel_size = self.noise_filter_tab.kernelSize.value()
