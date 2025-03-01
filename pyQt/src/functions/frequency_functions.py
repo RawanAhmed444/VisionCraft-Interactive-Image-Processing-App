@@ -17,7 +17,7 @@ def ideal_filter(dft_shifted, cutoff = 10, type = "lp"):
 def calculate_dft(img):
     dft = np.fft.fft2(img)
     dft_shifted = np.fft.fftshift(dft)
-    magnitude_spectrum = 20*np.log(np.abs(dft_shifted))
+    magnitude_spectrum = 20 * np.log(np.abs(dft_shifted) + 1e-10) 
     return dft_shifted, magnitude_spectrum
 
 def filter_image(dft_shifted, mask):

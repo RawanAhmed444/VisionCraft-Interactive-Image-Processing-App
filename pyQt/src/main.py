@@ -410,6 +410,7 @@ class MainWindow(QMainWindow):
         # Single data structure to store all parameters
         self.params = {
             "noise_filter": {},
+            "filtering": {},
             "edge_detection": {},
             "thresholding": {},
             "frequency_filter": {},
@@ -550,6 +551,20 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
                 # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
                 widget.valueChanged.connect(lambda: self.update_params("noise_filter", noise_filter_ui))      
+        
+        
+            # Noise & Filter Tab - Filter UI Components
+            filter_ui = {
+                "filter_type": self.noise_filter_tab.filterType,
+                "kernel_size": self.noise_filter_tab.kernelSize,
+                "sigma_value": self.noise_filter_tab.sigmaValue
+            }
+            for widget in filter_ui.values():
+                if isinstance(widget, QComboBox):
+                    widget.currentTextChanged.connect(lambda: self.update_params("filter", filter_ui))
+                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                    widget.valueChanged.connect(lambda: self.update_params("filter", filter_ui))
+
         # Edge Detection Tab
         self.edge_detection_ui = {
             "edge_type": self.edge_detection_tab.edgeType,
@@ -609,6 +624,8 @@ class MainWindow(QMainWindow):
                 widget.valueChanged.connect(lambda: self.update_params("hybrid_image", self.hybrid_image_ui))    
         # Connect apply buttons
         self.noise_filter_tab.btn_noise.clicked.connect(self.apply_noise)
+           # Connect the "Apply Filter" button
+        self.noise_filter_tab.btn_filter.clicked.connect(self.apply_filter)
         # self.edge_detection_tab.btn_edge_detection.clicked.connect(lambda: self.process_image("detect_edges", **self.params["edge_detection"]))
         # self.thresholding_tab.btn_threshold.clicked.connect(lambda: self.process_image("apply_thresholding", **self.params["thresholding"]))
         # self.frequency_filter_tab.btn_freq_filter.clicked.connect(lambda: self.process_image("apply_frequency_filter", **self.params["frequency_filter"]))
@@ -661,11 +678,11 @@ class MainWindow(QMainWindow):
         # noise_type = noise_params.get("noise_type", "uniform")  # Default to "uniform" if not specified
 
         # Call the add_noise function with the retrieved parameters
-        self.add_noise(**noise_params)
+        self._add_noise(**noise_params)
         print("Applying noise:", noise_params)
         self.display_image(self.modified_image)
         
-    def add_noise(self, **kwargs):
+    def _add_noise(self, **kwargs):
         """
         Adds noise to the image based on the specified noise type and parameters.
 
@@ -685,12 +702,33 @@ class MainWindow(QMainWindow):
             raise ValueError("No image loaded. Please load an image before applying noise.")
             
     def apply_filter(self):
-        filter_type = self.noise_filter_tab.filterType.currentText()
-        kernel_size = self.noise_filter_tab.kernelSize.value()
-        sigma = self.noise_filter_tab.sigmaValue.value()
-        self.modified_image = self.processors['noise'].apply_filters(filter_type, kernel_size=kernel_size, sigma=sigma)
+        """
+        Applies a filter to the image based on the selected filter type and parameters from the UI.
+        """
+        # Retrieve filter parameters from the params dictionary
+        filter_params = self.params.get("filtering", {})
+        # Call the apply_filters function with the retrieved parameters
+        self._apply_filters(**filter_params)
+        print("Applying filter:", filter_params)
         self.display_image(self.modified_image)
 
+    def _apply_filters(self, **kwargs):
+        """
+        Applies a filter to the image based on the specified filter type and parameters.
+
+        Args:
+            filter_type (str): Type of filter to apply. Options: "average", "gaussian", "median".
+            **kwargs: Additional parameters for the filter (e.g., kernel_size, sigma).
+        """
+        if self.modified_image is not None:
+            self.confirm_edit()  # Confirm any previous edits before applying a new filter
+
+        if self.image is not None:
+            # Apply the filter using the specified parameters
+            filtered_image = self.processors['noise'].apply_filters( **kwargs)
+            self.modified_image = filtered_image.get(kwargs.get("filter_type", "median")) # Default to "median" filter
+        else:
+            raise ValueError("No image loaded. Please load an image before applying a filter.")
     def detect_edges(self):
         edge_type = self.edge_detection_tab.edgeType.currentText()
         self.modified_image = self.processors['edge_detector'].detect_edges(edge_type)
@@ -764,21 +802,7 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(qimg)
         self.lbl_image.setPixmap(pixmap.scaled(self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio))
 
-    def add_noise(self, noise_type="uniform", **kwargs):
-        """
-        Example: Using the factory to create a NoiseProcessor.
-        
-        """
-        if self.modified_image is not None:
-            self.confirm_edit()
-                    
-        if self.image is not None:
-            noisy_image = self.processors['noise'].add_noise(noise_type, **kwargs) #uniform (intensity=50), gaussian (mean=0, std=25), salt_pepper (salt_prob=0.02, pepper_prob=0.02)
-            self.modified_image = noisy_image
-            self.display_image(self.modified_image, modified = True)
-        else:
-            raise ValueError(f"Unknown noise type '{noise_type}'. Use 'gaussian' or 'salt_pepper'.")
-    
+   
     def apply_filters(self, filter_type="median", **kwargs):
         """
         Example: Using the factory  to create a NoiseProcessor.

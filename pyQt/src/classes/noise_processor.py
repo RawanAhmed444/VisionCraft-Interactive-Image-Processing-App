@@ -1,6 +1,6 @@
 import numpy as np
 from functions.noise_functions import add_uniform_noise, add_gaussian_noise, add_salt_pepper_noise, apply_average_filter, apply_gaussian_filter, apply_median_filter
-
+from utils import convert_to_grayscale
 class NoiseProcessor:
     """Handles noise addition and filtering for grayscale images."""
     
@@ -18,6 +18,7 @@ class NoiseProcessor:
         if image is None or not isinstance(image, np.ndarray):
             raise ValueError("Invalid image input. Expected a NumPy array.")
         self.image = image
+        self.noisy_image = image
 
     def add_noise(self, noise_type="uniform", **kwargs):
         """
@@ -48,12 +49,14 @@ class NoiseProcessor:
         :return: Dictionary containing filtered images.
         """
         if self.noisy_image is None:
+            
             raise ValueError("No noisy image available. Apply noise first.")
-
+        
+        self.noisy_image =   convert_to_grayscale(self.noisy_image)     
         self.filtered_images = {
-            "Average Filter": apply_average_filter(self.noisy_image, **kwargs), # kernel_size=3
-            "Gaussian Filter": apply_gaussian_filter(self.noisy_image, **kwargs), # kernel_size=3, sigma=1.0
-            "Median Filter": apply_median_filter(self.noisy_image, **kwargs) # kernel_size=3
+            "average": apply_average_filter(self.noisy_image, **kwargs), # kernel_size=3
+            "gaussian": apply_gaussian_filter(self.noisy_image, **kwargs), # kernel_size=3, sigma=1.0
+            "median": apply_median_filter(self.noisy_image, **kwargs) # kernel_size=3
         }
         return self.filtered_images
 
