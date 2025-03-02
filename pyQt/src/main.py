@@ -37,6 +37,7 @@ class NoiseFilterTab(QWidget):
         # Noise UI Components
         self.noiseType = QComboBox()
         self.noiseType.addItems(["uniform", "gaussian", "salt_pepper"])
+        self.noiseType.currentTextChanged.connect(self.update_noise_params_visibility)
 
         self.noiseIntensity = QSpinBox()
         self.noiseIntensity.setRange(1, 100)
@@ -69,28 +70,33 @@ class NoiseFilterTab(QWidget):
         noise_type_layout.addWidget(self.noiseType)
         self.noiseParamLayout.addLayout(noise_type_layout)
 
+        self.intensity_label = QLabel("Intensity")
         intensity_layout = QHBoxLayout()
-        intensity_layout.addWidget(QLabel("Intensity"))
+        intensity_layout.addWidget(self.intensity_label)
         intensity_layout.addWidget(self.noiseIntensity)
         self.noiseParamLayout.addLayout(intensity_layout)
 
+        self.mean_label = QLabel("Mean")
         mean_layout = QHBoxLayout()
-        mean_layout.addWidget(QLabel("Mean"))
+        mean_layout.addWidget(self.mean_label)
         mean_layout.addWidget(self.gaussianMean)
         self.noiseParamLayout.addLayout(mean_layout)
 
+        self.std_label = QLabel("Std Dev")
         std_layout = QHBoxLayout()
-        std_layout.addWidget(QLabel("Std Dev"))
+        std_layout.addWidget(self.std_label)
         std_layout.addWidget(self.gaussianStd)
         self.noiseParamLayout.addLayout(std_layout)
 
+        self.salt_label = QLabel("Salt Prob")
         salt_layout = QHBoxLayout()
-        salt_layout.addWidget(QLabel("Salt Prob"))
+        salt_layout.addWidget(self.salt_label)
         salt_layout.addWidget(self.saltProb)
         self.noiseParamLayout.addLayout(salt_layout)
 
+        self.pepper_label = QLabel("Pepper Prob")
         pepper_layout = QHBoxLayout()
-        pepper_layout.addWidget(QLabel("Pepper Prob"))
+        pepper_layout.addWidget(self.pepper_label)
         pepper_layout.addWidget(self.pepperProb)
         self.noiseParamLayout.addLayout(pepper_layout)
 
@@ -141,6 +147,21 @@ class NoiseFilterTab(QWidget):
         filter_layout.addLayout(self.filterParamLayout)
         noise_and_filter_layout.addWidget(filter_frame)
 
+        self.update_noise_params_visibility()
+
+    def update_noise_params_visibility(self):
+        noise_type = self.noiseType.currentText()
+        self.noiseIntensity.setVisible(noise_type == "uniform")
+        self.intensity_label.setVisible(noise_type == "uniform")
+        self.gaussianMean.setVisible(noise_type == "gaussian")
+        self.mean_label.setVisible(noise_type == "gaussian")
+        self.gaussianStd.setVisible(noise_type == "gaussian")
+        self.std_label.setVisible(noise_type == "gaussian")
+        self.saltProb.setVisible(noise_type == "salt_pepper")
+        self.salt_label.setVisible(noise_type == "salt_pepper")
+        self.pepperProb.setVisible(noise_type == "salt_pepper")
+        self.pepper_label.setVisible(noise_type == "salt_pepper")
+
 class EdgeDetectionTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -152,6 +173,7 @@ class EdgeDetectionTab(QWidget):
 
         self.edgeType = QComboBox()
         self.edgeType.addItems(["sobel", "canny", "prewitt", "roberts"])
+        self.edgeType.currentTextChanged.connect(self.update_edge_params_visibility)
 
         self.sobelKernelSize = QSpinBox()
         self.sobelKernelSize.setRange(1, 15)
@@ -194,43 +216,51 @@ class EdgeDetectionTab(QWidget):
         edge_type_layout.addWidget(self.edgeType)
         self.edgeParamLayout.addLayout(edge_type_layout)
 
+        self.sobel_kernel_label = QLabel("Kernel Size")
         sobel_kernel_layout = QHBoxLayout()
-        sobel_kernel_layout.addWidget(QLabel("Kernel Size"))
+        sobel_kernel_layout.addWidget(self.sobel_kernel_label)
         sobel_kernel_layout.addWidget(self.sobelKernelSize)
         self.edgeParamLayout.addLayout(sobel_kernel_layout)
 
+        self.sobel_sigma_label = QLabel("Sigma")
         sobel_sigma_layout = QHBoxLayout()
-        sobel_sigma_layout.addWidget(QLabel("Sigma"))
+        sobel_sigma_layout.addWidget(self.sobel_sigma_label)
         sobel_sigma_layout.addWidget(self.sobelSigma)
         self.edgeParamLayout.addLayout(sobel_sigma_layout)
 
+        self.canny_low_label = QLabel("Low Threshold")
         canny_low_layout = QHBoxLayout()
-        canny_low_layout.addWidget(QLabel("Low Threshold"))
+        canny_low_layout.addWidget(self.canny_low_label)
         canny_low_layout.addWidget(self.cannyLowThreshold)
         self.edgeParamLayout.addLayout(canny_low_layout)
 
+        self.canny_high_label = QLabel("High Threshold")
         canny_high_layout = QHBoxLayout()
-        canny_high_layout.addWidget(QLabel("High Threshold"))
+        canny_high_layout.addWidget(self.canny_high_label)
         canny_high_layout.addWidget(self.cannyHighThreshold)
         self.edgeParamLayout.addLayout(canny_high_layout)
 
+        self.canny_max_label = QLabel("Max Edge")
         canny_max_layout = QHBoxLayout()
-        canny_max_layout.addWidget(QLabel("Max Edge"))
+        canny_max_layout.addWidget(self.canny_max_label)
         canny_max_layout.addWidget(self.cannyMaxEdgeVal)
         self.edgeParamLayout.addLayout(canny_max_layout)
 
+        self.canny_min_label = QLabel("Min Edge")
         canny_min_layout = QHBoxLayout()
-        canny_min_layout.addWidget(QLabel("Min Edge"))
+        canny_min_layout.addWidget(self.canny_min_label)
         canny_min_layout.addWidget(self.cannyMinEdgeVal)
         self.edgeParamLayout.addLayout(canny_min_layout)
 
+        self.prewitt_threshold_label = QLabel("Threshold")
         prewitt_threshold_layout = QHBoxLayout()
-        prewitt_threshold_layout.addWidget(QLabel("Threshold"))
+        prewitt_threshold_layout.addWidget(self.prewitt_threshold_label)
         prewitt_threshold_layout.addWidget(self.prewittThreshold)
         self.edgeParamLayout.addLayout(prewitt_threshold_layout)
 
+        self.prewitt_value_label = QLabel("Value")
         prewitt_value_layout = QHBoxLayout()
-        prewitt_value_layout.addWidget(QLabel("Value"))
+        prewitt_value_layout.addWidget(self.prewitt_value_label)
         prewitt_value_layout.addWidget(self.prewittValue)
         self.edgeParamLayout.addLayout(prewitt_value_layout)
 
@@ -239,6 +269,34 @@ class EdgeDetectionTab(QWidget):
         edge_detection_layout.addLayout(self.edgeParamLayout)
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(edge_detection_frame)
+
+        self.update_edge_params_visibility()
+
+    def update_edge_params_visibility(self):
+        edge_type = self.edgeType.currentText()
+        is_sobel = edge_type == "sobel"
+        is_canny = edge_type == "canny"
+        is_prewitt = edge_type == "prewitt"
+        is_roberts = edge_type == "roberts"
+
+        self.sobelKernelSize.setVisible(is_sobel)
+        self.sobel_kernel_label.setVisible(is_sobel)
+        self.sobelSigma.setVisible(is_sobel)
+        self.sobel_sigma_label.setVisible(is_sobel)
+
+        self.cannyLowThreshold.setVisible(is_canny)
+        self.canny_low_label.setVisible(is_canny)
+        self.cannyHighThreshold.setVisible(is_canny)
+        self.canny_high_label.setVisible(is_canny)
+        self.cannyMaxEdgeVal.setVisible(is_canny)
+        self.canny_max_label.setVisible(is_canny)
+        self.cannyMinEdgeVal.setVisible(is_canny)
+        self.canny_min_label.setVisible(is_canny)
+
+        self.prewittThreshold.setVisible(is_prewitt)
+        self.prewitt_threshold_label.setVisible(is_prewitt)
+        self.prewittValue.setVisible(is_prewitt)
+        self.prewitt_value_label.setVisible(is_prewitt)
 
 class ThresholdingTab(QWidget):
     def __init__(self, parent=None):
@@ -251,6 +309,7 @@ class ThresholdingTab(QWidget):
 
         self.thresholdType = QComboBox()
         self.thresholdType.addItems(["global", "local"])
+        self.thresholdType.currentTextChanged.connect(self.update_threshold_params_visibility)
 
         self.globalThreshold = QSpinBox()
         self.globalThreshold.setRange(0, 255)
@@ -274,18 +333,21 @@ class ThresholdingTab(QWidget):
         threshold_type_layout.addWidget(self.thresholdType)
         self.thresholdLayout.addLayout(threshold_type_layout)
 
+        self.global_threshold_label = QLabel("Global Threshold")
         global_threshold_layout = QHBoxLayout()
-        global_threshold_layout.addWidget(QLabel("Global Threshold"))
+        global_threshold_layout.addWidget(self.global_threshold_label)
         global_threshold_layout.addWidget(self.globalThreshold)
         self.thresholdLayout.addLayout(global_threshold_layout)
 
+        self.kernel_size_label = QLabel("Kernel Size")
         kernel_size_threshold_layout = QHBoxLayout()
-        kernel_size_threshold_layout.addWidget(QLabel("Kernel Size"))
+        kernel_size_threshold_layout.addWidget(self.kernel_size_label)
         kernel_size_threshold_layout.addWidget(self.kernelSizeThreshold)
         self.thresholdLayout.addLayout(kernel_size_threshold_layout)
 
+        self.k_value_label = QLabel("K Value")
         k_value_layout = QHBoxLayout()
-        k_value_layout.addWidget(QLabel("K Value"))
+        k_value_layout.addWidget(self.k_value_label)
         k_value_layout.addWidget(self.kValue)
         self.thresholdLayout.addLayout(k_value_layout)
 
@@ -294,6 +356,20 @@ class ThresholdingTab(QWidget):
         thresholding_layout.addLayout(self.thresholdLayout)
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(thresholding_frame)
+
+        self.update_threshold_params_visibility()
+
+    def update_threshold_params_visibility(self):
+        threshold_type = self.thresholdType.currentText()
+        is_global = threshold_type == "global"
+        is_local = threshold_type == "local"
+
+        self.globalThreshold.setVisible(is_global)
+        self.global_threshold_label.setVisible(is_global)
+        self.kernelSizeThreshold.setVisible(is_local)
+        self.kernel_size_label.setVisible(is_local)
+        self.kValue.setVisible(is_local)
+        self.k_value_label.setVisible(is_local)
 
 class FrequencyFilterTab(QWidget):
     def __init__(self, parent=None):
@@ -335,10 +411,26 @@ class HybridImageTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
+        self.parent = parent
+        self.image1 = None
+        self.image2 = None
+
         hybrid_image_frame = QFrame()
         hybrid_image_frame.setObjectName("hybrid_image_frame")
         hybrid_image_layout = QVBoxLayout(hybrid_image_frame)
         hybrid_image_layout.setAlignment(Qt.AlignTop)
+
+        self.image1_label = QLabel("No Image 1 Loaded")
+        self.image1_label.setAlignment(Qt.AlignCenter)
+        self.image1_label.setStyleSheet("border: 1px solid rgb(40, 57, 153);")
+        self.image1_label.setFixedSize(330, 330)
+        self.image1_label.mouseDoubleClickEvent = lambda event: self.load_image(1)
+
+        self.image2_label = QLabel("No Image 2 Loaded")
+        self.image2_label.setAlignment(Qt.AlignCenter)
+        self.image2_label.setStyleSheet("border: 1px solid rgb(40, 57, 153);")
+        self.image2_label.setFixedSize(330, 330)
+        self.image2_label.mouseDoubleClickEvent = lambda event: self.load_image(2)
 
         self.cutoff1 = QSpinBox()
         self.cutoff1.setRange(1, 100)
@@ -355,9 +447,10 @@ class HybridImageTab(QWidget):
         self.type2.addItems(["lp", "hp"])
 
         self.btn_hybrid = QPushButton("Create Hybrid Image")
-        self.btn_hybrid.clicked.connect(parent.create_hybrid_image)
+        self.btn_hybrid.clicked.connect(self.create_hybrid_image)
 
         self.hybridLayout = QVBoxLayout()
+
         cutoff1_layout = QHBoxLayout()
         cutoff1_layout.addWidget(QLabel("Cutoff 1"))
         cutoff1_layout.addWidget(self.cutoff1)
@@ -379,17 +472,55 @@ class HybridImageTab(QWidget):
         self.hybridLayout.addLayout(type2_layout)
 
         self.hybridLayout.addWidget(self.btn_hybrid)
+        
+        images_layout = QVBoxLayout()
+        images_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
+        images_layout.addSpacing(10)
+        images_layout.addWidget(self.image1_label)
+        images_layout.addWidget(self.image2_label)
+        self.hybridLayout.addLayout(images_layout)
 
         hybrid_image_layout.addLayout(self.hybridLayout)
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(hybrid_image_frame)
+
+    def load_image(self, image_number):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
+        if file_path:
+            image = cv2.imread(file_path)
+            if image_number == 1:
+                self.image1 = image
+                self.display_image(self.image1, self.image1_label)
+            elif image_number == 2:
+                self.image2 = image
+                self.display_image(self.image2, self.image2_label)
+
+    def display_image(self, img, label):
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        h, w, ch = img_rgb.shape
+        qimg = QImage(img_rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimg)
+        label.setPixmap(pixmap.scaled(label.width(), label.height(), Qt.KeepAspectRatio))
+
+    def create_hybrid_image(self):
+        if self.image1 is None or self.image2 is None:
+            QMessageBox.warning(self, "Warning", "Please load both images first.")
+            return
+
+        cutoff1 = self.cutoff1.value()
+        cutoff2 = self.cutoff2.value()
+        type1 = self.type1.currentText()
+        type2 = self.type2.currentText()
+
+        hybrid_image = self.parent.processors['frequency'].create_hybrid_image(self.image1, self.image2, cutoff1, cutoff2, type1, type2)
+        self.parent.display_image(hybrid_image)
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyQt Image Processing App")
-        self.setGeometry(100, 100, 1200, 800)  # Set window size
+        self.setGeometry(100, 100, 1200, 800)
 
         # Central widget and layout
         central_widget = QWidget()
@@ -413,14 +544,9 @@ class MainWindow(QMainWindow):
         self.edge_detection_tab = EdgeDetectionTab(self)
         tab_widget.addTab(self.edge_detection_tab, "Edge Detection")
 
-
         # Thresholding Tab
         self.thresholding_tab = ThresholdingTab(self)
         tab_widget.addTab(self.thresholding_tab, "Thresholding")
-
-        # Edge Detection Tab
-        self.edge_detection_tab = EdgeDetectionTab(self)
-        tab_widget.addTab(self.edge_detection_tab, "Edge Detection")
         
         # Frequency Filter Tab
         self.frequency_filter_tab = FrequencyFilterTab(self)
@@ -489,8 +615,8 @@ class MainWindow(QMainWindow):
 
         # Image Display Frame
         image_display_frame = QFrame()
-        image_display_frame.setMaximumWidth(1400)
-        image_display_frame.setMinimumWidth(1400)
+        image_display_frame.setMaximumWidth(1390)
+        image_display_frame.setMinimumWidth(1390)
         image_display_layout = QVBoxLayout(image_display_frame)
 
         self.lbl_image = QLabel("No Image Loaded")
