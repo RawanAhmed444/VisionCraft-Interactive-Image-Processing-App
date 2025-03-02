@@ -113,9 +113,6 @@ def apply_hysteresis(strong_edges, weak_edges):
 
     return final_edges
 
-
-
-
 def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
     """
     Detects edges using the Sobel operator.
@@ -129,7 +126,6 @@ def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
     Gx, Gy = compute_sobel_gradients(blurred)
     G = magnitude(Gx, Gy)
     return np.uint8(255 * (G / np.max(G)))
-
 
 def prewitt_edge_detection(image, threshold, value):
     """
