@@ -62,6 +62,7 @@ def compute_gradient(image, axis = 0):
         raise ValueError("Unsupported axis. Use axis=0 for rows or axis=1 for columns.")
         
     return np.clip(grad, 0, 255).astype(np.uint8)
+import numpy as np
 
 def custom_pad(img, pad_height, pad_width):
     """
@@ -82,15 +83,14 @@ def custom_pad(img, pad_height, pad_width):
     padded_img[pad_height:pad_height + height, pad_width:pad_width + width] = img
 
     # Pad the top and bottom rows
-    padded_img[:pad_height, pad_width:pad_width + width] = img[0, :]  # Top padding
-    padded_img[pad_height + height:, pad_width:pad_width + width] = img[-1, :]  # Bottom padding
+    padded_img[:pad_height, pad_width:pad_width + width] = img[0:1, :]  # Top padding (replicate first row)
+    padded_img[pad_height + height:, pad_width:pad_width + width] = img[-1:, :]  # Bottom padding (replicate last row)
 
     # Pad the left and right columns
-    padded_img[:, :pad_width] = padded_img[:, pad_width:pad_width + 1]  # Left padding
-    padded_img[:, pad_width + width:] = padded_img[:, pad_width + width - 1:pad_width + width]  # Right padding
+    padded_img[:, :pad_width] = padded_img[:, pad_width:pad_width + 1]  # Left padding (replicate leftmost column)
+    padded_img[:, pad_width + width:] = padded_img[:, pad_width + width - 1:pad_width + width]  # Right padding (replicate rightmost column)
 
     return padded_img
-
 
 def convolve(img, kernel):
     """
@@ -100,17 +100,15 @@ def convolve(img, kernel):
     :param kernel: Filter kernel (NumPy array).
     :return: Convolved image.
     """
-    # Ensure the kernel has odd dimensions
+    # Get kernel dimensions
     kernel_height, kernel_width = kernel.shape
-    if kernel_height % 2 == 0 or kernel_width % 2 == 0:
-        raise ValueError("Kernel dimensions must be odd (e.g., 3x3, 5x5).")
 
     # Calculate padding sizes
-    pad_h = kernel_height // 2  # Padding for rows (top and bottom)
-    pad_w = kernel_width // 2   # Padding for columns (left and right)
+    pad_height = kernel_height // 2  # Padding for rows (top and bottom)
+    pad_width = kernel_width // 2    # Padding for columns (left and right)
 
     # Pad the image using custom padding function
-    img_padded = custom_pad(img, pad_h, pad_w)
+    img_padded = custom_pad(img, pad_height, pad_width)
 
     # Create an empty output image
     output = np.zeros_like(img, dtype=np.float32)
@@ -120,15 +118,49 @@ def convolve(img, kernel):
         for j in range(img.shape[1]):
             # Extract region matching the kernel size
             region = img_padded[i:i + kernel_height, j:j + kernel_width]
-            # Ensure the region and kernel have the same shape
-            if region.shape == kernel.shape:
-                output[i, j] = np.sum(region * kernel)  # Apply filter
-            else:
-                # Handle edge cases where the region is smaller than the kernel
-                output[i, j] = img[i, j]  # Keep the original pixel value
+            # Apply filter
+            output[i, j] = np.sum(region * kernel)
     
     # Normalize output to valid range (0-255) and convert to uint8
-    return np.clip(output, 0, 255).astype(np.uint8)
+    output = np.clip(output, 0, 255).astype(np.uint8)
+    return output
+# def convolve(img, kernel):
+#     """
+#     Applies convolution to an image using a given kernel (without using convolve2d).
+
+#     :param img: Input grayscale image (NumPy array).
+#     :param kernel: Filter kernel (NumPy array).
+#     :return: Convolved image.
+#     """
+#     # Ensure the kernel has odd dimensions
+#     kernel_height, kernel_width = kernel.shape
+#     if kernel_height % 2 == 0 or kernel_width % 2 == 0:
+#         raise ValueError("Kernel dimensions must be odd (e.g., 3x3, 5x5).")
+
+#     # Calculate padding sizes
+#     pad_h = kernel_height // 2  # Padding for rows (top and bottom)
+#     pad_w = kernel_width // 2   # Padding for columns (left and right)
+
+#     # Pad the image using custom padding function
+#     img_padded = custom_pad(img, pad_h, pad_w)
+
+#     # Create an empty output image
+#     output = np.zeros_like(img, dtype=np.float32)
+    
+#     # Perform convolution
+#     for i in range(img.shape[0]):
+#         for j in range(img.shape[1]):
+#             # Extract region matching the kernel size
+#             region = img_padded[i:i + kernel_height, j:j + kernel_width]
+#             # Ensure the region and kernel have the same shape
+#             if region.shape == kernel.shape:
+#                 output[i, j] = np.sum(region * kernel)  # Apply filter
+#             else:
+#                 # Handle edge cases where the region is smaller than the kernel
+#                 output[i, j] = img[i, j]  # Keep the original pixel value
+    
+#     # Normalize output to valid range (0-255) and convert to uint8
+#     return np.clip(output, 0, 255).astype(np.uint8)
 
 def gaussian_kernel(size, sigma=1.0):
     """

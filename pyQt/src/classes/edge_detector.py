@@ -31,8 +31,8 @@ class EdgeDetector:
         """
         # Convert to grayscale if necessary
         self.image = convert_to_grayscale(image)
-        
-    def detect_edges(self, detector_method = 'sobel', **kwargs):
+            
+    def detect_edges(self, detector_method='sobel', **kwargs):
         """
         Detects edges using the specified method.
         
@@ -41,15 +41,23 @@ class EdgeDetector:
         :return: Edge map produced by the specified method.
         """
         if detector_method == 'sobel':
-            return self.detect_sobel(**kwargs)
+            # Filter kwargs to only include valid arguments for detect_sobel
+            valid_kwargs = {k: v for k, v in kwargs.items() if k in ['kernel_size', 'sigma']}
+            return self.detect_sobel(**valid_kwargs)
         elif detector_method == 'canny':
-            return self.detect_canny(**kwargs)
+            # Filter kwargs to only include valid arguments for detect_canny
+            valid_kwargs = {k: v for k, v in kwargs.items() if k in ['low_threshold', 'high_threshold', 'max_edge_val', 'min_edge_val']}
+            return self.detect_canny(**valid_kwargs)
         elif detector_method == 'prewitt':
-            return self.detect_prewitt(**kwargs)
+            # Filter kwargs to only include valid arguments for detect_prewitt
+            valid_kwargs = {k: v for k, v in kwargs.items() if k in ['threshold', 'value']}
+            return self.detect_prewitt(**valid_kwargs)
         elif detector_method == 'roberts':
-            return self.detect_roberts(**kwargs)
+            # No kwargs for detect_roberts
+            return self.detect_roberts()
         else:
             raise ValueError(f"Unknown edge detection method '{detector_method}'. Use 'sobel', 'canny', 'prewitt', or 'roberts'.")
+    
     def detect_sobel(self, kernel_size=3, sigma=1.0):
         """
         Detects edges using the Sobel operator.

@@ -567,15 +567,15 @@ class MainWindow(QMainWindow):
 
         # Edge Detection Tab
         self.edge_detection_ui = {
-            "edge_type": self.edge_detection_tab.edgeType,
-            "sobel_kernel_size": self.edge_detection_tab.sobelKernelSize,
-            "sobel_sigma": self.edge_detection_tab.sobelSigma,
-            "canny_low_threshold": self.edge_detection_tab.cannyLowThreshold,
-            "canny_high_threshold": self.edge_detection_tab.cannyHighThreshold,
-            "canny_max_edge_val": self.edge_detection_tab.cannyMaxEdgeVal,
-            "canny_min_edge_val": self.edge_detection_tab.cannyMinEdgeVal,
-            "prewitt_threshold": self.edge_detection_tab.prewittThreshold,
-            "prewitt_value": self.edge_detection_tab.prewittValue
+            "detector_method": self.edge_detection_tab.edgeType,
+            "kernel_size": self.edge_detection_tab.sobelKernelSize,
+            "sigma": self.edge_detection_tab.sobelSigma,
+            "low_threshold": self.edge_detection_tab.cannyLowThreshold,
+            "high_threshold": self.edge_detection_tab.cannyHighThreshold,
+            "max_edge_val": self.edge_detection_tab.cannyMaxEdgeVal,
+            "min_edge_val": self.edge_detection_tab.cannyMinEdgeVal,
+            "threshold": self.edge_detection_tab.prewittThreshold,
+            "value": self.edge_detection_tab.prewittValue
         }
         # Edge Detection Tab
         for widget in self.edge_detection_ui.values():
@@ -589,9 +589,9 @@ class MainWindow(QMainWindow):
         # Thresholding Tab
         self.thresholding_ui = {
             "threshold_type": self.thresholding_tab.thresholdType,
-            "global_threshold": self.thresholding_tab.globalThreshold,
-            "kernel_size": self.thresholding_tab.kernelSizeThreshold,
-            "k_value": self.thresholding_tab.kValue
+            "T": self.thresholding_tab.globalThreshold,
+            "kernal": self.thresholding_tab.kernelSizeThreshold,
+            "k": self.thresholding_tab.kValue
         }
         for widget in self.thresholding_ui.values():
             if isinstance(widget, QComboBox):

@@ -16,19 +16,21 @@ def globalthresholding(image, T = 128, value = 255):
     return binary_img
 
 
-def localthresholding(image, kernal = 5, k = 2):
+def localthresholding(image, kernal=10, k=0.5):
     """
     Local thresholding using Niblack's method.
     """
-    #use odd kernal size
+    # Use odd kernel size
     if kernal % 2 == 0:
         kernal += 1
-    #handling borders
+
+    # Handling borders
     pad = kernal // 2
-    padded_image = np.pad(image, pad, mode='constant', constant_values=0) #may be needed to implemented on my own
-    
+    padded_image = np.pad(image, pad, mode='constant')  # Zero-padding
+
     binary_img = np.zeros_like(image, dtype=np.uint8)
-   # Apply local thresholding
+
+    # Apply local thresholding
     for i in range(image.shape[0]):
         for j in range(image.shape[1]):
             # Extract the local neighborhood
