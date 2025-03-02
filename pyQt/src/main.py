@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QWidget, QMessageBox
 )
 from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 
 from processor_factory import ProcessorFactory
 import sys
@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
     QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout
 )
+from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt
 from processor_factory import ProcessorFactory
@@ -573,39 +574,53 @@ class MainWindow(QMainWindow):
         control_buttons_frame = QFrame()
         control_buttons_layout = QHBoxLayout(control_buttons_frame)
 
-        self.btn_histogram = QPushButton("Show Histogram")
+        self.btn_histogram = QPushButton()
+        self.btn_histogram.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/diagram-bar-3.png')))
+        self.btn_histogram.setIconSize(QSize(32, 32))
         self.btn_histogram.clicked.connect(self.show_histogram)
         control_buttons_layout.addWidget(self.btn_histogram)
 
-        self.btn_equalize = QPushButton("Equalize Image")
+        self.btn_equalize = QPushButton()
+        self.btn_equalize.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/equalizer-solid.png')))
+        self.btn_equalize.setIconSize(QSize(32, 32))
         self.btn_equalize.clicked.connect(self.equalize)
         control_buttons_layout.addWidget(self.btn_equalize)
 
-        self.btn_normalize = QPushButton("Normalize Image")
+        self.btn_normalize = QPushButton()
+        self.btn_normalize.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/gaussain-curve.png')))
+        self.btn_normalize.setIconSize(QSize(32, 32))
         self.btn_normalize.clicked.connect(self.normalize)
         control_buttons_layout.addWidget(self.btn_normalize)
 
-        self.btn_snake = QPushButton("Active Contour (Snake)")
+        self.btn_snake = QPushButton()
+        self.btn_snake.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/contour-map.png')))
+        self.btn_snake.setIconSize(QSize(32, 32))
         # self.btn_snake.clicked.connect(self.run_snake)
         control_buttons_layout.addWidget(self.btn_snake)
 
         control_layout.addWidget(control_buttons_frame)
 
-        control_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        control_layout.addSpacerItem(QSpacerItem(0, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
         # Image Control Buttons Frame
         image_control_buttons_frame = QFrame()
         image_control_buttons_layout = QHBoxLayout(image_control_buttons_frame)
 
-        self.btn_confirm = QPushButton("Confirm Edit")
+        self.btn_confirm = QPushButton()
+        self.btn_confirm.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/confirm.png')))
+        self.btn_confirm.setIconSize(QSize(28, 28))
         self.btn_confirm.clicked.connect(self.confirm_edit)
         image_control_buttons_layout.addWidget(self.btn_confirm)
 
-        self.btn_discard = QPushButton("Discard Edit")
+        self.btn_discard = QPushButton()
+        self.btn_discard.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/discard.png')))
+        self.btn_discard.setIconSize(QSize(28, 28))
         self.btn_discard.clicked.connect(self.discard_edit)
         image_control_buttons_layout.addWidget(self.btn_discard)
 
-        self.btn_reset = QPushButton("Reset Image")
+        self.btn_reset = QPushButton()
+        self.btn_reset.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/reset.png')))
+        self.btn_reset.setIconSize(QSize(28, 28))
         self.btn_reset.clicked.connect(self.reset_image)
         image_control_buttons_layout.addWidget(self.btn_reset)
 
@@ -623,10 +638,8 @@ class MainWindow(QMainWindow):
         self.lbl_image.setObjectName("lbl_image")
         self.lbl_image.setAlignment(Qt.AlignCenter)
         image_display_layout.addWidget(self.lbl_image)
+        self.lbl_image.mouseDoubleClickEvent = self.on_image_label_double_click
 
-        self.btn_load_image = QPushButton("Load Image")
-        self.btn_load_image.clicked.connect(self.load_image)
-        image_display_layout.addWidget(self.btn_load_image)
 
         right_layout.addWidget(image_display_frame)
         main_layout.addWidget(right_frame)
@@ -638,14 +651,24 @@ class MainWindow(QMainWindow):
         self.extra_image = None
         self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
 
-    def load_image(self):
+    def on_image_label_double_click(self, event):
+        self.load_image()
+    
+    def load_image(self, hybird=False):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
         if file_path:
-            self.image = cv2.imread(file_path)
-            self.original_image = self.image.copy()
-            for processor in self.processors.values():
-                processor.set_image(self.image)
-            self.display_image(self.image)
+            image = cv2.imread(file_path)
+            if hybird:
+                self.extra_image = image
+                self.display_image(self.extra_image, hybird=True)
+            else:
+                self.image = image
+                self.original_image = self.image.copy()
+                for processor in self.processors.values():
+                    processor.set_image(self.image)
+                self.display_image(self.image)
+        else:
+            QMessageBox.information(self, "Info", "No file selected.")
 
     def display_image(self, img):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

@@ -5,6 +5,7 @@ QWidget {
     font: 600 10pt "Segoe UI";
 }
 
+
 /* Noise Frame */
 QFrame#noise_frame {
     background-color: rgb(4, 3, 26);
