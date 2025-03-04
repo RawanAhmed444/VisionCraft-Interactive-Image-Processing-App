@@ -133,34 +133,24 @@ def roberts_edge_detection(image):
     Gy = convolve(gray, kernel_y)
     return np.int8(magnitude(Gx, Gy))
 
-def canny_edge_detection(image, low_threshold=None, high_threshold=None, max_edge_val=255, min_edge_val=0):
-    """
-    Full Canny edge detection pipeline (from scratch).
-    
-    :param image: Input BGR or grayscale image.
-    :param low_threshold: Lower threshold for double thresholding.
-    :param high_threshold: Higher threshold for double thresholding.
-    :return: Final edge map.
-    """
+def canny_edge_detection(image, low_threshold=10, high_threshold=30, max_edge_val=255, min_edge_val=0):
     gray = convert_to_grayscale(image)
-    
-    smooth = smooth_image(gray, kernel_size=5, sigma=1.4)
-    
+    smooth = apply_gaussian_filter(gray)
     Gx, Gy = compute_sobel_gradients(smooth)
     G = magnitude(Gx, Gy)
-    
-    theta = np.arctan2(Gy, Gx) * (180 / np.pi)
-    theta[theta < 0] += 180
-    
-    nms = non_maximum_suppression(G, theta)
-    
+    G_normalized = np.uint8(G / G.max() * 255)
+
+    theta = np.rad2deg(np.arctan2(Gy, Gx)) % 180
+    nms = non_maximum_suppression(G_normalized, theta)
+
     max_val = np.max(nms)
     low_threshold = low_threshold if low_threshold is not None else max_val * 0.1
     high_threshold = high_threshold if high_threshold is not None else max_val * 0.5
+
     strong_edges, weak_edges = apply_double_thresholding(nms, low_threshold, high_threshold, max_edge_val, min_edge_val)
     final_edges = apply_hysteresis(strong_edges, weak_edges)
 
-    return G
+    return  final_edges
 
 
 
