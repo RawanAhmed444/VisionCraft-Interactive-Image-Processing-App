@@ -18,8 +18,10 @@ class FrequencyProcessor:
         self.filtered_image = filter_image(self.dft_shifted, mask)
         return self.filtered_image
         
-    def create_hybrid_image(self, img2, cutoff1=10, cutoff2=10, type1="lp", type2="lp"):
-        self.hybrid_image = hybrid_filter(self.image, img2, cutoff1, cutoff2, type1, type2)
+    def create_hybrid_image(self,img1 , img2, cutoff1=10, cutoff2=10, type1="lp", type2="lp"):
+        img1 = convert_to_grayscale(img1)
+        img2 = convert_to_grayscale(img2)
+        self.hybrid_image = hybrid_filter(img1, img2, cutoff1, cutoff2, type1, type2)
         return self.hybrid_image
    
     def set_image(self, image):

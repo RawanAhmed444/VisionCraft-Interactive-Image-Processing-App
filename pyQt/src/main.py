@@ -577,11 +577,7 @@ class MainWindow(QMainWindow):
         # Thresholding Tab
         self.thresholding_tab = ThresholdingTab(self)
         tab_widget.addTab(self.thresholding_tab, "Thresholding")
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> origin/filters
         # Frequency Filter Tab
         self.frequency_filter_tab = FrequencyFilterTab(self)
         tab_widget.addTab(self.frequency_filter_tab, "Frequency Filter")
@@ -634,12 +630,7 @@ class MainWindow(QMainWindow):
 
         control_layout.addWidget(control_buttons_frame)
 
-<<<<<<< HEAD
-        # Add a spacer to push the next frame to the right
-        control_layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-=======
         control_layout.addSpacerItem(QSpacerItem(0, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
->>>>>>> origin/filters
 
         # Image Control Buttons Frame
         image_control_buttons_frame = QFrame()
