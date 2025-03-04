@@ -13,6 +13,7 @@ from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt, QSize
 
 from processor_factory import ProcessorFactory
+from classes.histogram_processor import HistogramVisualizationWidget
 import sys
 import cv2
 import numpy as np
@@ -493,9 +494,12 @@ class HybridImageTab(QWidget):
             image = cv2.imread(file_path)
             if image_number == 1:
                 self.image1 = image
+                self.image1 = cv2.cvtColor(self.image1, cv2.COLOR_BGR2RGB)
                 self.display_image(self.image1, self.image1_label)
             elif image_number == 2:
+                
                 self.image2 = image
+                self.image2 = cv2.cvtColor(self.image2, cv2.COLOR_BGR2RGB)
                 self.display_image(self.image2, self.image2_label)
 
     def display_image(self, img, label):
@@ -797,21 +801,6 @@ class MainWindow(QMainWindow):
     def on_image_label_double_click(self, event):
         self.load_image()
     
-    def load_image(self, hybird=False):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
-        if file_path:
-            image = cv2.imread(file_path)
-            if hybird:
-                self.extra_image = image
-                self.display_image(self.extra_image, hybird=True)
-            else:
-                self.image = image
-                self.original_image = self.image.copy()
-                for processor in self.processors.values():
-                    processor.set_image(self.image)
-                self.display_image(self.image)
-        else:
-            QMessageBox.information(self, "Info", "No file selected.")
 
     def display_image(self, img):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -945,7 +934,12 @@ class MainWindow(QMainWindow):
             raise ValueError("No image loaded. Please load an image before applying thresholding.")
     
     def show_histogram(self):
-        self.processors['histogram'].plot_all_histograms()
+        
+        # self.processors['histogram'].plot_all_histograms()
+        self.processors['histogram'].set_image(self.image)
+
+        self.visualization_widget = HistogramVisualizationWidget(processor  = self.processors['histogram'])
+        self.visualization_widget.show()
     def apply_frequency_filter(self):
         """
         Applies a frequency filter to the image based on the selected filter type and parameters from the UI.
@@ -997,6 +991,7 @@ class MainWindow(QMainWindow):
         file_path, _ = file_dialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.bmp)")
         if file_path and hybird == False:
             self.image = cv2.imread(file_path)
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
             self.original_image = self.image
             if self.image is None:
                 QMessageBox.critical(self, "Error", "Failed to load image.")
@@ -1020,10 +1015,9 @@ class MainWindow(QMainWindow):
         """
         if len(img.shape) == 3:
             # Convert BGR to RGB
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            h, w, ch = img_rgb.shape
+            h, w, ch = img.shape
             bytes_per_line = ch * w
-            qimg = QImage(img_rgb.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888)
         else:
             # Grayscale
             h, w = img.shape
@@ -1039,22 +1033,6 @@ class MainWindow(QMainWindow):
             self.lbl_image.width(), self.lbl_image.height(), Qt.KeepAspectRatio
         ))
     
-
-    def hybrid_image(self, **kwargs):
-        """
-        Example: Using the factory to create a HybridProcessor.
-        """
-        if self.modified_image is not None:
-            self.confirm_edit()
-            
-        self.load_image(hybird=True)
-        
-        if self.image is not None:
-            hybrid_image = self.processors['frequency'].create_hybrid_image(img2 = self.extra_image,**kwargs) # cutoff1=10, cutoff2=10, type1="lp", type2="hp"
-            self.modified_image = hybrid_image
-            self.display_image(self.modified_image, modified = True)
-        else:
-            raise ValueError("No image available. Load an image first.")
 
     def equalize(self):
         """

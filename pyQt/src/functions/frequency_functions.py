@@ -11,9 +11,9 @@ def ideal_filter(dft_shifted, cutoff=10, type="low_pass"):
     distance = np.sqrt(xx**2 + yy**2)
     
     # Create the mask based on the filter type
-    if type == "low_pass" or "lp":  # Low-pass filter
+    if type == "low_pass" or type == "lp":  # Low-pass filter
         mask = (distance <= cutoff).astype(np.uint8)
-    elif type == "high_pass" or "hp":  # High-pass filter
+    elif type == "high_pass" or type == "hp":  # High-pass filter
         mask = (distance > cutoff).astype(np.uint8)
     else:
         raise ValueError("Invalid filter type. Use 'lp' or 'hp'.")
@@ -32,6 +32,3 @@ def filter_image(dft_shifted, mask):
     image_filtered = np.abs(image_filtered)
     image_filtered = np.clip(image_filtered, 0, 255).astype(np.uint8)
     return image_filtered
-
-
-    
