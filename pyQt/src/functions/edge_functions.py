@@ -79,7 +79,7 @@ def apply_double_thresholding(G, low_threshold, high_threshold, strong_edge=255,
     # Define edge strength values
     STRONG = strong_edge
     WEAK = weak_edge  
-
+    
     # Classify pixels
     strong_edges[G >= high_threshold] = STRONG
     weak_edges[(G >= low_threshold) & (G < high_threshold)] = WEAK
