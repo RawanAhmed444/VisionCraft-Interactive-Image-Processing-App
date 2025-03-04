@@ -30,86 +30,51 @@ def compute_sobel_gradients(image):
     Gy = convolve(image, kernel_y)
     return Gx, Gy
 
+
 def non_maximum_suppression(G, theta):
-    """
-    Suppresses non-maximum pixels in the gradient magnitude image.
-    
-    :param G: Gradient magnitude image.
-    :param theta: Gradient direction in degrees.
-    :return: Image after non-maximum suppression.
-    """
     height, width = G.shape
-    nms = np.zeros_like(G)
-    
-    # Loop through image (ignore boundaries for simplicity)
-    for y in range(1, height-1):
-        for x in range(1, width-1):
+    nms = np.zeros_like(G, dtype=np.uint8)
+    theta = theta % 180
+
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
             angle = theta[y, x]
-            # Determine neighbors along the gradient direction
-            if (0 <= angle < 22.5) or (157.5 <= angle <= 180):
-                q, r = G[y, x-1], G[y, x+1]
-            elif (22.5 <= angle < 67.5):
-                q, r = G[y-1, x+1], G[y+1, x-1]
-            elif (67.5 <= angle < 112.5):
-                q, r = G[y-1, x], G[y+1, x]
-            elif (112.5 <= angle < 157.5):
-                q, r = G[y-1, x-1], G[y+1, x+1]
-            
-            # Retain pixel if it's a local maximum
-            if G[y, x] >= q and G[y, x] >= r:
+            if (0 <= angle < 22.5) or (157.5 <= angle < 180):
+                p1, p2 = G[y, x-1], G[y, x+1]
+            elif 22.5 <= angle < 67.5:
+                p1, p2 = G[y-1, x+1], G[y+1, x-1]
+            elif 67.5 <= angle < 112.5:
+                p1, p2 = G[y-1, x], G[y+1, x]
+            elif 112.5 <= angle < 157.5:
+                p1, p2 = G[y-1, x-1], G[y+1, x+1]
+
+            if G[y, x] >= p1 and G[y, x] >= p2:
                 nms[y, x] = G[y, x]
-            else:
-                nms[y, x] = 0
+
     return nms
 
+def apply_double_thresholding(image, low_threshold, high_threshold, max_edge_val=255, min_edge_val=0):
+    strong_edges = np.zeros_like(image)
+    weak_edges = np.zeros_like(image)
 
-def apply_double_thresholding(G, low_threshold, high_threshold, strong_edge=255, weak_edge=50):
-    """
-    Applies double thresholding to classify pixels as strong, weak, or non-edges.
-
-    :param G: Non-maximum suppressed gradient magnitude image.
-    :param low_threshold: Lower threshold value.
-    :param high_threshold: Higher threshold value.
-    :return: Tuple (strong_edges, weak_edges) with binary masks.
-    """
-    # Initialize masks for strong and weak edges
-    strong_edges = np.zeros_like(G, dtype=np.uint8)
-    weak_edges = np.zeros_like(G, dtype=np.uint8)
-
-    # Define edge strength values
-    STRONG = strong_edge
-    WEAK = weak_edge  
-    
-    # Classify pixels
-    strong_edges[G >= high_threshold] = STRONG
-    weak_edges[(G >= low_threshold) & (G < high_threshold)] = WEAK
-
+    strong_edges[image >= high_threshold] = max_edge_val
+    weak_edges[(image >= low_threshold) & (image < high_threshold)] = min_edge_val
     return strong_edges, weak_edges
 
-def apply_hysteresis(strong_edges, weak_edges):
-    """
-    Performs edge tracking by hysteresis to retain only connected weak edges.
-
-    :param strong_edges: Binary mask of strong edges.
-    :param weak_edges: Binary mask of weak edges.
-    :return: Final edge-detected image.
-    """
+def apply_hysteresis(strong_edges, weak_edges, max_edge_val=255):
     height, width = strong_edges.shape
-    final_edges = strong_edges.copy()
+    final_edges = np.copy(strong_edges)
+    stack = list(zip(*np.where(strong_edges == max_edge_val)))
 
-    # Directions for 8-connected neighbors
-    directions = [(-1, -1), (-1, 0), (-1, 1),
-                  (0, -1),         (0, 1),
-                  (1, -1), (1, 0), (1, 1)]
-
-    # Iterate over all weak edge pixels
-    for y in range(1, height-1):
-        for x in range(1, width-1):
-            if weak_edges[y, x] > 0:  # If it's a weak edge
-                for dy, dx in directions:
-                    if strong_edges[y + dy, x + dx] == 255:  # Connected to a strong edge
-                        final_edges[y, x] = 255
-                        break  # Stop checking neighbors if connected
+    while stack:
+        y, x = stack.pop()
+        for dy in [-1, 0, 1]:
+            for dx in [-1, 0, 1]:
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < height and 0 <= nx < width and weak_edges[ny, nx] != 0:
+                    final_edges[ny, nx] = max_edge_val
+                    weak_edges[ny, nx] = 0
+                    stack.append((ny, nx))
 
     return final_edges
 
@@ -193,9 +158,9 @@ def canny_edge_detection(image, low_threshold=None, high_threshold=None, max_edg
     low_threshold = low_threshold if low_threshold is not None else max_val * 0.1
     high_threshold = high_threshold if high_threshold is not None else max_val * 0.5
     strong_edges, weak_edges = apply_double_thresholding(nms, low_threshold, high_threshold, max_edge_val, min_edge_val)
-    
     final_edges = apply_hysteresis(strong_edges, weak_edges)
-    return np.int8(final_edges)
+
+    return G
 
 
 
