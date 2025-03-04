@@ -1,6 +1,6 @@
 import numpy as np
 from functions.noise_functions import add_uniform_noise, add_gaussian_noise, add_salt_pepper_noise, apply_average_filter, apply_gaussian_filter, apply_median_filter
-
+from utils import convert_to_grayscale
 class NoiseProcessor:
     """Handles noise addition and filtering for grayscale images."""
     
@@ -18,6 +18,7 @@ class NoiseProcessor:
         if image is None or not isinstance(image, np.ndarray):
             raise ValueError("Invalid image input. Expected a NumPy array.")
         self.image = image
+        self.noisy_image = image
 
     def add_noise(self, noise_type="uniform", **kwargs):
         """
@@ -31,16 +32,23 @@ class NoiseProcessor:
             raise ValueError("No image set. Use set_image() first.")
 
         if noise_type == "uniform":
-            self.noisy_image = add_uniform_noise(self.image, **kwargs)
+            intensity = kwargs.get('intensity', 50)  # Default intensity is 50
+            self.noisy_image = add_uniform_noise(self.image, intensity=intensity)
+            
         elif noise_type == "gaussian":
-            self.noisy_image = add_gaussian_noise(self.image, **kwargs)
+            mean = kwargs.get('mean', 0)
+            std = kwargs.get('std', 25)
+            self.noisy_image = add_gaussian_noise(self.image, mean=mean, std=std)
+            
         elif noise_type == "salt_pepper":
-            self.noisy_image = add_salt_pepper_noise(self.image, **kwargs)
+            salt_prob = kwargs.get('salt_prob', 0.02)
+            pepper_prob = kwargs.get('pepper_prob', 0.02)
+            self.noisy_image = add_salt_pepper_noise(self.image, salt_prob=salt_prob, pepper_prob=pepper_prob)
+            
         else:
             raise ValueError("Invalid noise type. Choose 'uniform', 'gaussian', or 'salt_pepper'.")
 
         return self.noisy_image
-
     def apply_filters(self, **kwargs): 
         """
         Applies average, Gaussian, and median filters to the noisy image.
@@ -48,12 +56,14 @@ class NoiseProcessor:
         :return: Dictionary containing filtered images.
         """
         if self.noisy_image is None:
+            
             raise ValueError("No noisy image available. Apply noise first.")
-
+        
+        self.noisy_image =   convert_to_grayscale(self.noisy_image)     
         self.filtered_images = {
-            "Average Filter": apply_average_filter(self.noisy_image, **kwargs), # kernel_size=3
-            "Gaussian Filter": apply_gaussian_filter(self.noisy_image, **kwargs), # kernel_size=3, sigma=1.0
-            "Median Filter": apply_median_filter(self.noisy_image, **kwargs) # kernel_size=3
+            "average": apply_average_filter(self.noisy_image, **kwargs), # kernel_size=3
+            "gaussian": apply_gaussian_filter(self.noisy_image, **kwargs), # kernel_size=3, sigma=1.0
+            "median": apply_median_filter(self.noisy_image, **kwargs) # kernel_size=3
         }
         return self.filtered_images
 
