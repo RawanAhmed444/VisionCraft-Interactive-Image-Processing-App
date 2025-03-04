@@ -4,7 +4,7 @@ from utils import convert_to_grayscale
 class ThresholdingProcessor:
     """Applies global or local thresholding on an image."""
     
-    def __init__(self, threshold_type="global", T=128, kernel=4, k=2):
+    def __init__(self, threshold_type="global", T=128, kernel=5, k=2):
         """
         Initializes the thresholding processor.
 

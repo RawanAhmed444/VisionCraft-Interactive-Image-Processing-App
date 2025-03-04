@@ -51,7 +51,7 @@ class FrequencyProcessor:
             raise ValueError("No image set. Please call set_image() first.")
         self.filter_type = filter_type
         print(self.filter_type)
-        self.mask = ideal_filter(self.dft_shifted, radius, filter_type)
+        self.mask = ideal_filter(dft_shifted=self.dft_shifted,cutoff=radius, type=filter_type)
         filtered_image = filter_image(self.dft_shifted, self.mask)
         self.filtered_image = filtered_image
         return filtered_image

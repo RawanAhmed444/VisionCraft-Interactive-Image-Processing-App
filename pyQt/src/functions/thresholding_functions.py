@@ -14,45 +14,94 @@ def threshold_image(img, T = 128, local = False, kernal= 4, k = 2):
 def globalthresholding(image, T = 128, value = 255):
     binary_img  = (image > T).astype(np.uint8) * value
     return binary_img
-
-
-def localthresholding(image, kernal=10, k=0.5):
+def integral_image(image):
     """
-    Local thresholding using Niblack's method.
+    Compute the integral image of a given image.
+    
+    :param image: Input grayscale image (2D NumPy array).
+    :return: Integral image.
     """
-    # Use odd kernel size
-    if kernal % 2 == 0:
-        kernal += 1
+    return np.cumsum(np.cumsum(image, axis=0), axis=1)
 
-    # Handling borders
-    pad = kernal // 2
-    padded_image = np.pad(image, pad, mode='constant')  # Zero-padding
+def _mean_std(image, w):
+    """
+    Return local mean and standard deviation of each pixel using a
+    neighborhood defined by a rectangular window with size w x w.
+    The algorithm uses integral images to speed up computation.
 
-    binary_img = np.zeros_like(image, dtype=np.uint8)
+    :param image: Input grayscale image (2D NumPy array).
+    :param w: Odd window size (e.g., 3, 5, 7, ..., 21, ...).
+    :return: Tuple (m, s) where:
+             - m: 2D array of local mean values.
+             - s: 2D array of local standard deviation values.
+    """
+    if w == 1 or w % 2 == 0:
+        raise ValueError(f"Window size w = {w} must be odd and greater than 1.")
 
-    # Apply local thresholding
+    # Pad the image to handle borders
+    pad = w // 2
+    padded = np.pad(image.astype('float'), ((pad, pad), (pad, pad)), mode='reflect')
+    padded_sq = padded * padded
+
+    # Compute integral images
+    integral = integral_image(padded)
+    integral_sq = integral_image(padded_sq)
+
+    # Define the kernel for computing sums
+    kern = np.zeros((w + 1, w + 1))
+    kern[0, 0] = 1
+    kern[0, -1] = -1
+    kern[-1, 0] = -1
+    kern[-1, -1] = 1
+
+    # Compute local sums using the kernel
+    sum_full = np.zeros_like(image, dtype=np.float64)
+    sum_sq_full = np.zeros_like(image, dtype=np.float64)
+
     for i in range(image.shape[0]):
         for j in range(image.shape[1]):
-            # Extract the local neighborhood
-            neighbor = padded_image[i:i + kernal, j:j + kernal]
+            # Coordinates in the padded image
+            i_pad = i + pad
+            j_pad = j + pad
 
-            # Debug: Print the shape of the neighbor
-            if neighbor.shape != (kernal, kernal):
-                print(f"Warning: Invalid neighbor shape at ({i}, {j}): {neighbor.shape}")
-                continue  # Skip this pixel if the neighbor is invalid
+            # Compute the sum using the integral image
+            sum_full[i, j] = (
+                integral[i_pad + 1, j_pad + 1] -
+                integral[i_pad + 1, j_pad - w] -
+                integral[i_pad - w, j_pad + 1] +
+                integral[i_pad - w, j_pad - w]
+            )
+            sum_sq_full[i, j] = (
+                integral_sq[i_pad + 1, j_pad + 1] -
+                integral_sq[i_pad + 1, j_pad - w] -
+                integral_sq[i_pad - w, j_pad + 1] +
+                integral_sq[i_pad - w, j_pad - w]
+            )
 
-            # Calculate mean and standard deviation of the neighborhood
-            mean = np.mean(neighbor, axis=(0, 1))
-            std = np.std(neighbor, axis=(0, 1))
+    # Compute local mean and standard deviation
+    m = sum_full / (w ** 2)
+    g2 = sum_sq_full / (w ** 2)
+    s = np.sqrt(np.maximum(g2 - m * m, 0))  # Ensure non-negative values
 
-            # Calculate the threshold using Niblack's method
-            T = mean + k * std
+    return m, s
 
-            # Debug: Print the threshold and pixel value
-            print(f"Pixel ({i}, {j}): T = {T}, image[i,j] = {image[i, j]}")
+def localthresholding(image, Kernal_size=3, k=0.2):
+    """
+    Applies Niblack local thresholding to an image.
 
-            # Apply the threshold
-            if image[i, j] > T:
-                binary_img[i, j] = 255
+    :param image: Input grayscale image (2D NumPy array).
+    :param window_size: Odd size of pixel neighborhood window (e.g., 3, 5, 7...).
+    :param k: Value of parameter k in the threshold formula.
+    :return: Binary image after thresholding.
+    """
+    # Compute local mean and standard deviation
+    m, s = _mean_std(image, Kernal_size)
 
-    return binary_img
+    # Calculate the threshold using Niblack's method
+    threshold = m - k * s
+
+    # Apply the threshold
+    binary_image = np.where(image > threshold, 255, 0).astype(np.uint8)
+
+    return binary_image
+
