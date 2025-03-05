@@ -87,13 +87,15 @@ def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
     gray = convert_to_grayscale(image)
     # Optional Gaussian smoothing before gradient calculation:
     blurred = smooth_image(gray, kernel_size, sigma)
-    Gx, Gy = compute_sobel_gradients(blurred)
+    G_normalized = np.uint8(255 * (blurred / np.max(blurred)))
+
+    G_threshold = globalthresholding(G_normalized, T =100, value = 255)
+
+    Gx, Gy = compute_sobel_gradients(G_threshold)
     G = magnitude(Gx, Gy)
-    G_normalized = np.uint8(255 * (G / np.max(G)))
     
-    G_threshold = globalthresholding(G_normalized, T =200, value = 255)
     
-    return G_threshold
+    return np.uint8(255 * (G / np.max(G)))
 
 def prewitt_edge_detection(image, threshold, value):
     """
@@ -119,7 +121,7 @@ def prewitt_edge_detection(image, threshold, value):
     G = globalthresholding(G, threshold, value)
     return G
     
-    
+  
 def roberts_edge_detection(image):
     """
     Detects edges using the Roberts operator.
@@ -156,6 +158,61 @@ def canny_edge_detection(image, low_threshold=10, high_threshold=30, max_edge_va
     return  final_edges
 
 
+def sobel_h(image):
+    """
+    Compute the horizontal edges of an image using the Sobel transform.
+    
+    :param image: Input grayscale image (2D NumPy array).
+    :return: Horizontal edge map.
+    """
+    # Define the horizontal Sobel kernel
+    kernel = np.array([
+        [1, 2, 1],
+        [0, 0, 0],
+        [-1, -2, -1]
+    ], dtype=np.float32)
+
+    # Apply the kernel using convolution
+    return cv2.filter2D(image, -1, kernel)
+
+def sobel_v(image):
+    """
+    Compute the vertical edges of an image using the Sobel transform.
+    
+    :param image: Input grayscale image (2D NumPy array).
+    :return: Vertical edge map.
+    """
+    # Define the vertical Sobel kernel
+    kernel = np.array([
+        [1, 0, -1],
+        [2, 0, -2],
+        [1, 0, -1]
+    ], dtype=np.float32)
+
+    # Apply the kernel using convolution
+    return cv2.filter2D(image, -1, kernel)
+
+# def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
+#     """
+#     Compute the edge magnitude using the Sobel transform.
+    
+#     :param image: Input grayscale image (2D NumPy array).
+#     :param threshold: Threshold value for binarization (optional).
+#     :return: Edge map (binary if threshold is provided, otherwise gradient magnitude).
+#     """
+#     # Compute horizontal and vertical gradients
+#     Gx = sobel_h(image)
+#     Gy = sobel_v(image)
+
+#     # Compute gradient magnitude
+#     G = np.sqrt(Gx**2 + Gy**2)
+
+#     # Normalize gradient magnitude to [0, 255]
+#     G_normalized = np.uint8(255 * (G / np.max(G)))
+
+#     binary_edge_map = globalthresholding(G_normalized, T =100 , value = 255)
+    
+#     return binary_edge_map
 
 # # Canny Edge Detection
 # def canny_edge_detection(img, low_threshold=None, high_threshold=None):
