@@ -34,7 +34,6 @@ def compute_sobel_gradients(image):
 def non_maximum_suppression(G, theta):
     height, width = G.shape
     nms = np.zeros_like(G, dtype=np.uint8)
-    theta = theta % 180
 
     for y in range(1, height - 1):
         for x in range(1, width - 1):
@@ -53,7 +52,7 @@ def non_maximum_suppression(G, theta):
 
     return nms
 
-def apply_double_thresholding(image, low_threshold, high_threshold, max_edge_val=255, min_edge_val=0):
+def apply_double_thresholding(image, low_threshold, high_threshold, max_edge_val=255, min_edge_val=20):
     strong_edges = np.zeros_like(image)
     weak_edges = np.zeros_like(image)
 
@@ -90,7 +89,11 @@ def sobel_edge_detection(image, kernel_size = 3, sigma = 1.0):
     blurred = smooth_image(gray, kernel_size, sigma)
     Gx, Gy = compute_sobel_gradients(blurred)
     G = magnitude(Gx, Gy)
-    return np.uint8(255 * (G / np.max(G)))
+    G_normalized = np.uint8(255 * (G / np.max(G)))
+    
+    G_threshold = globalthresholding(G_normalized, T =200, value = 255)
+    
+    return G_threshold
 
 def prewitt_edge_detection(image, threshold, value):
     """
