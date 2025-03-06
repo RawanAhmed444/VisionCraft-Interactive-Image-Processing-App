@@ -2,28 +2,17 @@ import sys
 import cv2
 import numpy as np
 import os
-
-from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFrame, QTabWidget, QComboBox, QSpinBox, QDoubleSpinBox, 
-    QPushButton, QLabel, QSizePolicy, QSpacerItem
-)
-from PyQt5.QtCore import Qt
-
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 from PyQt5.QtCore import Qt, QSize
 
 from processor_factory import ProcessorFactory
 from classes.histogram_processor import HistogramVisualizationWidget
-import sys
-import cv2
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
     QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox
 )
-from PyQt5.QtGui import QIcon
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+
 from processor_factory import ProcessorFactory
 
 class NoiseFilterTab(QWidget):
@@ -522,7 +511,6 @@ class HybridImageTab(QWidget):
         hybrid_image = self.parent.processors['frequency'].create_hybrid_image(self.image1, self.image2, cutoff1, cutoff2, type1, type2)
         self.parent.display_image(hybrid_image)
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -537,12 +525,6 @@ class MainWindow(QMainWindow):
         
         self.init_ui(self.main_layout)
 
-        # self.noise_filter_tab = None
-        # self.edge_detection_tab = None
-        # self.thresholding_tab = None
-        # self.frequency_filter_tab = None
-        # self.hybrid_image_tab = None
-        
         # Single data structure to store all parameters
         self.params = {
             "noise_filter": {},
@@ -558,7 +540,6 @@ class MainWindow(QMainWindow):
         self.image = None
         self.original_image = None
         self.modified_image = None
-        self.extra_image = None
         self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
 
 
@@ -626,6 +607,7 @@ class MainWindow(QMainWindow):
         self.btn_normalize.clicked.connect(self.normalize)
         control_buttons_layout.addWidget(self.btn_normalize)
 
+        #we will edit this part
         self.btn_snake = QPushButton()
         self.btn_snake.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/contour-map.png')))
         self.btn_snake.setIconSize(QSize(32, 32))
@@ -815,7 +797,6 @@ class MainWindow(QMainWindow):
         """
         # Retrieve noise parameters from the params dictionary
         noise_params = self.params["noise_filter"]
-        # noise_type = noise_params.get("noise_type", "uniform")  # Default to "uniform" if not specified
 
         # Call the add_noise function with the retrieved parameters
         self._add_noise(**noise_params)
@@ -875,7 +856,6 @@ class MainWindow(QMainWindow):
         """
         # Retrieve edge detection parameters from the params dictionary
         edge_params = self.params.get("edge_detection", {})
-        edge_type = edge_params.get("edge_type", "sobel")  # Default to "sobel" if not specified
 
         # Call the _detect_edges function with the retrieved parameters
         self._detect_edges(**edge_params)
@@ -907,7 +887,6 @@ class MainWindow(QMainWindow):
         """
         # Retrieve thresholding parameters from the params dictionary
         threshold_params = self.params.get("thresholding", {})
-        threshold_type = threshold_params.get("threshold_type", "global")  # Default to "global" if not specified
         # Call the _apply_thresholding function with the retrieved parameters
         print("Applying thresholding:", threshold_params)
 
@@ -946,7 +925,6 @@ class MainWindow(QMainWindow):
         """
         # Retrieve frequency filter parameters from the params dictionary
         frequency_params = self.params.get("frequency_filter", {})
-       
         # Call the _apply_frequency_filter function with the retrieved parameters
         self._apply_frequency_filter(**frequency_params)
         print("Applying frequency filter:", frequency_params)
@@ -970,11 +948,7 @@ class MainWindow(QMainWindow):
             self.modified_image = filtered_image
         else:
             raise ValueError("No image loaded. Please load an image before applying frequency filtering.")
-    
-    def create_hybrid_image(self):
-        self.modified_image = self.processors['frequency'].create_hybrid_image(self.image, self.extra_image)
-        self.display_image(self.modified_image)
-
+   
     def equalize(self):
         self.modified_image = self.processors['image'].get_equalized_image()
         self.display_image(self.modified_image)
