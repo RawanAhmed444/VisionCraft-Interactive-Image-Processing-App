@@ -10,10 +10,165 @@ from classes.histogram_processor import HistogramVisualizationWidget
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
-    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox
+    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
 )
 
 from processor_factory import ProcessorFactory
+from functions.hough_transform_functions import detect_lines,detect_circles
+
+class HoughTransformTab(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        hough_transform_layout = QVBoxLayout(self)
+
+        hough_frame = QFrame()
+        hough_frame.setObjectName("hough_frame")
+        hough_layout = QVBoxLayout(hough_frame)
+
+        ############################## Line Detection Parameters ##############################
+        line_group_frame = QFrame()
+        line_group_frame.setObjectName("line_group_frame")
+        line_layout = QVBoxLayout(line_group_frame)
+
+        self.numRho = QSpinBox()
+        self.numRho.setRange(1, 500)
+        self.numRho.setValue(180)
+
+        self.numTheta = QSpinBox()
+        self.numTheta.setRange(1, 500)
+        self.numTheta.setValue(180)
+
+        self.blurKSize = QSpinBox()
+        self.blurKSize.setRange(1, 15)
+        self.blurKSize.setValue(5)
+
+        self.lowThreshold = QSpinBox()
+        self.lowThreshold.setRange(0, 255)
+        self.lowThreshold.setValue(50)
+
+        self.highThreshold = QSpinBox()
+        self.highThreshold.setRange(0, 255)
+        self.highThreshold.setValue(150)
+
+        self.houghThresholdRatio = QDoubleSpinBox()
+        self.houghThresholdRatio.setRange(0.0, 1.0)
+        self.houghThresholdRatio.setSingleStep(0.1)
+        self.houghThresholdRatio.setValue(0.6)
+
+        self.btn_detect_lines = QPushButton("Detect Lines")
+        self.btn_detect_lines.clicked.connect(parent.detect_lines)
+
+        num_rho_layout = QHBoxLayout()
+        num_rho_layout.addWidget(QLabel("Num Rho"))
+        num_rho_layout.addWidget(self.numRho)
+        line_layout.addLayout(num_rho_layout)
+
+        num_theta_layout = QHBoxLayout()
+        num_theta_layout.addWidget(QLabel("Num Theta"))
+        num_theta_layout.addWidget(self.numTheta)
+        line_layout.addLayout(num_theta_layout)
+
+        blur_ksize_layout = QHBoxLayout()
+        blur_ksize_layout.addWidget(QLabel("Blur Kernel Size"))
+        blur_ksize_layout.addWidget(self.blurKSize)
+        line_layout.addLayout(blur_ksize_layout)
+
+        low_threshold_layout = QHBoxLayout()
+        low_threshold_layout.addWidget(QLabel("Low Threshold"))
+        low_threshold_layout.addWidget(self.lowThreshold)
+        line_layout.addLayout(low_threshold_layout)
+
+        high_threshold_layout = QHBoxLayout()
+        high_threshold_layout.addWidget(QLabel("High Threshold"))
+        high_threshold_layout.addWidget(self.highThreshold)
+        line_layout.addLayout(high_threshold_layout)
+
+        hough_threshold_ratio_layout = QHBoxLayout()
+        hough_threshold_ratio_layout.addWidget(QLabel("Hough Threshold Ratio"))
+        hough_threshold_ratio_layout.addWidget(self.houghThresholdRatio)
+        line_layout.addLayout(hough_threshold_ratio_layout)
+
+        line_layout.addWidget(self.btn_detect_lines)
+
+        ############################## Circle Detection Parameters ##############################
+        circle_group_frame = QFrame()
+        circle_group_frame.setObjectName("circle_group_frame")
+        circle_layout = QVBoxLayout(circle_group_frame)
+
+        self.minEdgeThreshold = QSpinBox()
+        self.minEdgeThreshold.setRange(0, 255)
+        self.minEdgeThreshold.setValue(50)
+
+        self.maxEdgeThreshold = QSpinBox()
+        self.maxEdgeThreshold.setRange(0, 255)
+        self.maxEdgeThreshold.setValue(150)
+
+        self.rMin = QSpinBox()
+        self.rMin.setRange(1, 100)
+        self.rMin.setValue(20)
+
+        self.rMax = QSpinBox()
+        self.rMax.setRange(1, 500)
+        self.rMax.setValue(100)
+
+        self.deltaR = QSpinBox()
+        self.deltaR.setRange(1, 10)
+        self.deltaR.setValue(1)
+
+        self.numThetas = QSpinBox()
+        self.numThetas.setRange(1, 360)
+        self.numThetas.setValue(50)
+
+        self.binThreshold = QDoubleSpinBox()
+        self.binThreshold.setRange(0.0, 1.0)
+        self.binThreshold.setSingleStep(0.1)
+        self.binThreshold.setValue(0.4)
+
+        self.btn_detect_circles = QPushButton("Detect Circles")
+        self.btn_detect_circles.clicked.connect(parent.detect_circles)
+
+        min_edge_threshold_layout = QHBoxLayout()
+        min_edge_threshold_layout.addWidget(QLabel("Min Edge Threshold"))
+        min_edge_threshold_layout.addWidget(self.minEdgeThreshold)
+        circle_layout.addLayout(min_edge_threshold_layout)
+
+        max_edge_threshold_layout = QHBoxLayout()
+        max_edge_threshold_layout.addWidget(QLabel("Max Edge Threshold"))
+        max_edge_threshold_layout.addWidget(self.maxEdgeThreshold)
+        circle_layout.addLayout(max_edge_threshold_layout)
+
+        r_min_layout = QHBoxLayout()
+        r_min_layout.addWidget(QLabel("Min Radius"))
+        r_min_layout.addWidget(self.rMin)
+        circle_layout.addLayout(r_min_layout)
+
+        r_max_layout = QHBoxLayout()
+        r_max_layout.addWidget(QLabel("Max Radius"))
+        r_max_layout.addWidget(self.rMax)
+        circle_layout.addLayout(r_max_layout)
+
+        delta_r_layout = QHBoxLayout()
+        delta_r_layout.addWidget(QLabel("Delta Radius"))
+        delta_r_layout.addWidget(self.deltaR)
+        circle_layout.addLayout(delta_r_layout)
+
+        num_thetas_layout = QHBoxLayout()
+        num_thetas_layout.addWidget(QLabel("Num Thetas"))
+        num_thetas_layout.addWidget(self.numThetas)
+        circle_layout.addLayout(num_thetas_layout)
+
+        bin_threshold_layout = QHBoxLayout()
+        bin_threshold_layout.addWidget(QLabel("Bin Threshold"))
+        bin_threshold_layout.addWidget(self.binThreshold)
+        circle_layout.addLayout(bin_threshold_layout)
+
+        circle_layout.addWidget(self.btn_detect_circles)
+
+        hough_layout.addWidget(line_group_frame)
+        hough_layout.addWidget(circle_group_frame)
+        hough_transform_layout.addWidget(hough_frame)
+
 
 class NoiseFilterTab(QWidget):
     def __init__(self, parent=None):
@@ -570,6 +725,11 @@ class MainWindow(QMainWindow):
         # Hybrid Image Tab
         self.hybrid_image_tab = HybridImageTab(self)
         tab_widget.addTab(self.hybrid_image_tab, "Hybrid Image")
+
+        # Hough Transform Tab
+        self.hough_transform_tab = HoughTransformTab(self)
+        tab_widget.addTab(self.hough_transform_tab, "Hough Transform")
+
         
         left_layout.addWidget(tab_widget)
         main_layout.addWidget(left_frame)
@@ -1068,6 +1228,66 @@ class MainWindow(QMainWindow):
             self.display_image(self.image)
         else:
             raise ValueError("No original image available. Load an image first.")
+
+    def detect_lines(self):
+        """
+        Detects lines in the image using the Hough Transform based on the selected parameters from the UI.
+        """
+        if self.image is None:
+            QMessageBox.warning(self, "Warning", "Please load an image first.")
+            return
+
+        num_rho = self.hough_transform_tab.numRho.value()
+        num_theta = self.hough_transform_tab.numTheta.value()
+        blur_ksize = self.hough_transform_tab.blurKSize.value()
+        low_threshold = self.hough_transform_tab.lowThreshold.value()
+        high_threshold = self.hough_transform_tab.highThreshold.value()
+        hough_threshold_ratio = self.hough_transform_tab.houghThresholdRatio.value()
+
+        self.modified_image = detect_lines(
+            self.image,
+            num_rho=num_rho,
+            num_theta=num_theta,
+            blur_ksize=blur_ksize,
+            low_threshold=low_threshold,
+            high_threshold=high_threshold,
+            hough_threshold_ratio=hough_threshold_ratio
+        )
+
+        self.display_image(self.modified_image)
+
+    def detect_circles(self):
+        """
+        Detects circles in the image using the Hough Transform based on the selected parameters from the UI.
+        """
+        if self.image is None:
+            QMessageBox.warning(self, "Warning", "Please load an image first.")
+            return
+
+        try:
+            min_edge_threshold = self.hough_transform_tab.minEdgeThreshold.value()
+            max_edge_threshold = self.hough_transform_tab.maxEdgeThreshold.value()
+            r_min = self.hough_transform_tab.rMin.value()
+            r_max = self.hough_transform_tab.rMax.value()
+            delta_r = self.hough_transform_tab.deltaR.value()
+            num_thetas = self.hough_transform_tab.numThetas.value()
+            bin_threshold = self.hough_transform_tab.binThreshold.value()
+
+            self.modified_image = detect_circles(
+                self.image,
+                min_edge_threshold=min_edge_threshold,
+                max_edge_threshold=max_edge_threshold,
+                r_min=r_min,
+                r_max=r_max,
+                delta_r=delta_r,
+                num_thetas=num_thetas,
+                bin_threshold=bin_threshold
+            )
+
+            self.display_image(self.modified_image)
+        except Exception as e:
+            print(f"Error in detect_circles: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to detect circles: {e}")
 
 def main():
     app = QApplication(sys.argv)
