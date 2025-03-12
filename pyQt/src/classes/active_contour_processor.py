@@ -5,7 +5,7 @@ from functions.active_contour_functions import (
     external_energy,
     gradient_descent_step
 )
-from utils import convert_to_grayscale
+from utils import convert_to_grayscale, get_dimensions
 
 class ActiveContourProcessor:
     """

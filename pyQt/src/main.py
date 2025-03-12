@@ -687,7 +687,9 @@ class MainWindow(QMainWindow):
             "edge_detection": {},
             "thresholding": {},
             "frequency_filter": {},
-            "hybrid_image": {}
+            "hybrid_image": {},
+            "shape_detection":{}
+            
         }
         
         self.connect_signals()
@@ -824,6 +826,26 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(right_frame)
     
     def connect_signals(self):
+        
+        #hough_transform and shape detection tab
+        shape_detection_ui = {
+            'num_rho' : self.hough_transform_tab.numRho,
+            'num_theta': self.hough_transform_tab.numTheta,
+            'blur_ksize': self.hough_transform_tab.blurKSize,
+            'hough_threshold_ratio':self.hough_transform_tab.houghThresholdRatio,
+            'r_min' : self.hough_transform_tab.rMin,
+            'r_max': self.hough_transform_tab.rMax,
+            'num_thetas' : self.hough_transform_tab.numThetas         
+        }
+        for widget in shape_detection_ui.values():
+                if isinstance(widget, QComboBox):
+                    # Connect QComboBox's currentTextChanged signal
+                    widget.currentTextChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))
+                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                    # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                    widget.valueChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))      
+
+        
         # Noise & Filter Tab
         noise_filter_ui = {
             "noise_type": self.noise_filter_tab.noiseType,
@@ -833,6 +855,7 @@ class MainWindow(QMainWindow):
             "salt_prob": self.noise_filter_tab.saltProb,
             "pepper_prob": self.noise_filter_tab.pepperProb
         }
+        
         for widget in noise_filter_ui.values():
             if isinstance(widget, QComboBox):
                 # Connect QComboBox's currentTextChanged signal
@@ -842,17 +865,17 @@ class MainWindow(QMainWindow):
                 widget.valueChanged.connect(lambda: self.update_params("noise_filter", noise_filter_ui))      
         
         
-            # Noise & Filter Tab - Filter UI Components
-            filter_ui = {
-                "filter_type": self.noise_filter_tab.filterType,
-                "kernel_size": self.noise_filter_tab.kernelSize,
-                "sigma_value": self.noise_filter_tab.sigmaValue
-            }
-            for widget in filter_ui.values():
-                if isinstance(widget, QComboBox):
-                    widget.currentTextChanged.connect(lambda: self.update_params("filter", filter_ui))
-                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                    widget.valueChanged.connect(lambda: self.update_params("filter", filter_ui))
+        # Noise & Filter Tab - Filter UI Components
+        filter_ui = {
+            "filter_type": self.noise_filter_tab.filterType,
+            "kernel_size": self.noise_filter_tab.kernelSize,
+            "sigma_value": self.noise_filter_tab.sigmaValue
+        }
+        for widget in filter_ui.values():
+            if isinstance(widget, QComboBox):
+                widget.currentTextChanged.connect(lambda: self.update_params("filter", filter_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                widget.valueChanged.connect(lambda: self.update_params("filter", filter_ui))
 
         # Edge Detection Tab
         self.edge_detection_ui = {
@@ -1079,6 +1102,7 @@ class MainWindow(QMainWindow):
 
         self.visualization_widget = HistogramVisualizationWidget(processor  = self.processors['histogram'])
         self.visualization_widget.show()
+    
     def apply_frequency_filter(self):
         """
         Applies a frequency filter to the image based on the selected filter type and parameters from the UI.
@@ -1237,57 +1261,66 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Warning", "Please load an image first.")
             return
 
-        num_rho = self.hough_transform_tab.numRho.value()
-        num_theta = self.hough_transform_tab.numTheta.value()
-        blur_ksize = self.hough_transform_tab.blurKSize.value()
-        low_threshold = self.hough_transform_tab.lowThreshold.value()
-        high_threshold = self.hough_transform_tab.highThreshold.value()
-        hough_threshold_ratio = self.hough_transform_tab.houghThresholdRatio.value()
-
-        self.modified_image = detect_lines(
-            self.image,
-            num_rho=num_rho,
-            num_theta=num_theta,
-            blur_ksize=blur_ksize,
-            low_threshold=low_threshold,
-            high_threshold=high_threshold,
-            hough_threshold_ratio=hough_threshold_ratio
+        shape_params = self.params["shape_detection"]
+    
+        
+        self.modified_image = self.processors['edge_detector'].detect_shape(
+            shape_type = 'line',
+            **shape_params
         )
 
         self.display_image(self.modified_image)
 
     def detect_circles(self):
         """
-        Detects circles in the image using the Hough Transform based on the selected parameters from the UI.
+        Detects lines in the image using the Hough Transform based on the selected parameters from the UI.
         """
         if self.image is None:
             QMessageBox.warning(self, "Warning", "Please load an image first.")
             return
 
-        try:
-            min_edge_threshold = self.hough_transform_tab.minEdgeThreshold.value()
-            max_edge_threshold = self.hough_transform_tab.maxEdgeThreshold.value()
-            r_min = self.hough_transform_tab.rMin.value()
-            r_max = self.hough_transform_tab.rMax.value()
-            delta_r = self.hough_transform_tab.deltaR.value()
-            num_thetas = self.hough_transform_tab.numThetas.value()
-            bin_threshold = self.hough_transform_tab.binThreshold.value()
+        shape_params = self.params["shape_detection"]
 
-            self.modified_image = detect_circles(
-                self.image,
-                min_edge_threshold=min_edge_threshold,
-                max_edge_threshold=max_edge_threshold,
-                r_min=r_min,
-                r_max=r_max,
-                delta_r=delta_r,
-                num_thetas=num_thetas,
-                bin_threshold=bin_threshold
-            )
+        
+        self.modified_image = self.processors['edge_detector'].detect_shape(
+            shape_type = 'circle',
+            **shape_params
+        )
 
-            self.display_image(self.modified_image)
-        except Exception as e:
-            print(f"Error in detect_circles: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to detect circles: {e}")
+        self.display_image(self.modified_image)
+
+    # def detect_circles(self):
+    #     """
+    #     Detects circles in the image using the Hough Transform based on the selected parameters from the UI.
+    #     """
+    #     if self.image is None:
+    #         QMessageBox.warning(self, "Warning", "Please load an image first.")
+    #         return
+
+    #     try:
+    #         min_edge_threshold = self.hough_transform_tab.minEdgeThreshold.value()
+    #         max_edge_threshold = self.hough_transform_tab.maxEdgeThreshold.value()
+    #         r_min = self.hough_transform_tab.rMin.value()
+    #         r_max = self.hough_transform_tab.rMax.value()
+    #         delta_r = self.hough_transform_tab.deltaR.value()
+    #         num_thetas = self.hough_transform_tab.numThetas.value()
+    #         bin_threshold = self.hough_transform_tab.binThreshold.value()
+
+    #         self.modified_image = detect_circles(
+    #             self.image,
+    #             min_edge_threshold=min_edge_threshold,
+    #             max_edge_threshold=max_edge_threshold,
+    #             r_min=r_min,
+    #             r_max=r_max,
+    #             delta_r=delta_r,
+    #             num_thetas=num_thetas,
+    #             bin_threshold=bin_threshold
+    #         )
+
+    #         self.display_image(self.modified_image)
+    #     except Exception as e:
+    #         print(f"Error in detect_circles: {e}")
+    #         QMessageBox.critical(self, "Error", f"Failed to detect circles: {e}")
 
 def main():
     app = QApplication(sys.argv)
