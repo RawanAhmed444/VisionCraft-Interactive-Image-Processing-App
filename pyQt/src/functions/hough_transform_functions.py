@@ -3,6 +3,7 @@ import numpy as np
 import math
 from collections import defaultdict
 from utils import get_dimensions
+from functions.edge_functions import canny_edge_detection
 
 def detect_lines(image = None, num_rho=180, num_theta=180, blur_ksize=5, low_threshold=50, high_threshold=150, hough_threshold_ratio=0.6):
     '''
@@ -22,7 +23,7 @@ def detect_lines(image = None, num_rho=180, num_theta=180, blur_ksize=5, low_thr
     # Apply Canny Edge Detection
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blured_image = cv2.GaussianBlur(gray_image, (blur_ksize, blur_ksize), 0)
-    edged_image = cv2.Canny(blured_image, low_threshold, high_threshold)
+    edged_image = canny_edge_detection(blured_image)
 
     # Image dimensions
     height, width = edged_image.shape[:2]
@@ -85,7 +86,7 @@ def get_dimensions(image):
 def detect_edges(image, method="canny", **kwargs):
     """Detects edges in an image using the specified method."""
     if method == "canny":
-        return cv2.Canny(image, kwargs.get('low_threshold', 50), kwargs.get('high_threshold', 150))
+        return canny_edge_detection(image)
     raise ValueError("Unsupported edge detection method.")
 
 def initialize_hough_space(image, num_theta=180, num_rho=None):
@@ -247,7 +248,7 @@ def hough_circle_detection(image, r_min=10, r_max =100, **kwargs):
 def detect_edges(image, method="canny", **kwargs):
     """Detects edges in an image using the specified method."""
     if method == "canny":
-        return cv2.Canny(image, kwargs.get('low_threshold', 50), kwargs.get('high_threshold', 150))
+        return canny_edge_detection(image)
     raise ValueError("Unsupported edge detection method.")
 
 # 🔹 Step 2: Initialize Hough Accumulator for Ellipse Detection
@@ -336,7 +337,7 @@ def detect_circles(image, min_edge_threshold=50, max_edge_threshold=150, r_min=2
     try:
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blured_image = cv2.GaussianBlur(gray_image, (5, 5), 0)
-        edged_image = cv2.Canny(blured_image, min_edge_threshold, max_edge_threshold)
+        edged_image = canny_edge_detection(blured_image)
 
         height, width = image.shape[:2]
         if r_max is None:
