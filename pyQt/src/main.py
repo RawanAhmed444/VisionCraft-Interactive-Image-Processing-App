@@ -917,7 +917,7 @@ class MainWindow(QMainWindow):
         right_frame = QFrame()
         right_frame.setObjectName("right_frame")
         right_layout = QVBoxLayout(right_frame)
-        right_layout.setAlignment(Qt.AlignHCenter)
+        right_layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         
         # Control Buttons Frame
         control_frame = QFrame()
@@ -945,13 +945,6 @@ class MainWindow(QMainWindow):
         self.btn_normalize.setIconSize(QSize(32, 32))
         self.btn_normalize.clicked.connect(self.normalize)
         control_buttons_layout.addWidget(self.btn_normalize)
-
-        #we will edit this part
-        self.btn_snake = QPushButton()
-        self.btn_snake.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/contour-map.png')))
-        self.btn_snake.setIconSize(QSize(32, 32))
-        # self.btn_snake.clicked.connect(self.run_snake)
-        control_buttons_layout.addWidget(self.btn_snake)
 
         control_layout.addWidget(control_buttons_frame)
 
@@ -986,7 +979,7 @@ class MainWindow(QMainWindow):
         # Image Display Frame
         image_display_frame = QFrame()
 
-        image_display_frame.setFixedSize(1390,800)
+        image_display_frame.setFixedSize(1390,880)
         image_display_layout = QVBoxLayout(image_display_frame)
 
         self.lbl_image = QLabel("No Image Loaded")
