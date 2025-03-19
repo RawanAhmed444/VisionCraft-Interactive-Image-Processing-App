@@ -209,7 +209,9 @@ class EdgeDetector:
             return hough_line_detection(self.image, **valid_kwargs)
         elif shape_type == 'circle':
             valid_kwargs = {k: v for k, v in kwargs.items() if k in ['r_min', 'r_max', 'delta_r', 'num_thetas','blur_ksize', 'min_edge_threshold', 'max_edge_threshold', 'bin_threshold']}
-            return hough_ellipse_detection(self.image)
+            return hough_circle_detection(self.image, **valid_kwargs)
+        elif shape_type == 'ellipse':
+            valid_kwargs =  {k: v for k, v in kwargs.items() if k in ['min_d', 'max_d', 'step_size', 'blur_ksize', 'low_threshold', 'high_threshold', 'hough_threshold_ratio']}
             
     
     def detect_lines(self,  **kwargs):
