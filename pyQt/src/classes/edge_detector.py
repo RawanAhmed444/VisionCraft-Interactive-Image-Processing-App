@@ -7,7 +7,16 @@ from functions.edge_functions import (
     roberts_edge_detection,
     smooth_image
 )
-from utils import convert_to_grayscale, convolve
+
+from functions.hough_transform_functions import(
+    detect_lines,
+    hough_line_detection,
+    detect_circles,
+    hough_circle_detection,
+    hough_ellipse_detection
+    
+)
+from utils import convert_to_grayscale,get_dimensions, convolve
 
 class EdgeDetector:
     """
@@ -33,6 +42,8 @@ class EdgeDetector:
         """
         # Convert to grayscale if necessary
         self.image = convert_to_grayscale(image)
+        self.edge_maps = {}
+
             
     def detect_edges(self, detector_method='sobel', **kwargs):
         """
@@ -192,5 +203,89 @@ class EdgeDetector:
         """
         return self.edge_maps.get(method, None)
 
+    def detect_shape(self, shape_type = 'line', **kwargs):
+        if shape_type == 'line':
+            valid_kwargs = {k: v for k, v in kwargs.items() if k in ['num_rho', 'num_theta', 'blur_ksize', 'low_threshold', 'high_threshold', 'hough_threshold_ratio']}
+            return hough_line_detection(self.image, **valid_kwargs)
+        elif shape_type == 'circle':
+            valid_kwargs = {k: v for k, v in kwargs.items() if k in ['r_min', 'r_max', 'delta_r', 'num_thetas','blur_ksize', 'min_edge_threshold', 'max_edge_threshold', 'bin_threshold']}
+            return hough_ellipse_detection(self.image)
+            
+    
+    def detect_lines(self,  **kwargs):
+        
+        self.edge_maps['canny'] = self.edge_maps.get('canny') or self.detect_edges(detector_method='canny', **kwargs)
+        edged_image = self.edge_maps['canny']
+        
+        
+        h, w = get_dimensions(self.image)
+        diagonal = int(np.ceil(np.sqrt(h**2 + w**2)))
+        
+        dtheta = 180 / kwargs['num_theta'] 
+        drho = 2 * diagonal // kwargs['num_rho']
+        
+        # Create theta and rho ranges
+        thetas = np.arange(0, 180, step=dtheta)
+        rhos = np.arange(-diagonal, diagonal, step=drho)
+        accumulator = np.zeros((len(rhos), len(thetas)))
+        
+        cos_thetas = np.cos(np.deg2rad(thetas))
+        sin_thetas = np.sin(np.deg2rad(thetas))        
 
+        
+        # Hough Transform
+        for y in range(h):
+            for x in range(w):
+                if edged_image[y, x] != 0:
+                    center = [y - h//2, x - w//2]
+                    for theta_idx in range(len(thetas)):
+                        rho = (center[1] * cos_thetas[theta_idx]) + (center[0] * sin_thetas[theta_idx])
+                        rho_idx = np.argmin(abs(rhos - rho))
+                        accumulator[rho_idx][theta_idx] += 1
+        
+        max_val = np.max(accumulator)
+        threshold = max_val * kwargs['hough_threshold_ratio']
+        output_image = self.image.copy()
+        for y in range(accumulator.shape[0]):
+            for x in range(accumulator.shape[1]):
+                if accumulator[y][x] > threshold:
+                    rho = rhos[y]
+                    theta = thetas[x]
+                    a = np.cos(np.deg2rad(theta))
+                    b = np.sin(np.deg2rad(theta))
+                    x0 = (a * rho) + (w//2)
+                    y0 = (b * rho) + (h//2)
+                    x1 = int(x0 + 1000 * (-b))
+                    y1 = int(y0 + 1000 * (a))
+                    x2 = int(x0 - 1000 * (-b))
+                    y2 = int(y0 - 1000 * (a))
+                    output_image = cv2.line(output_image, (x1,y1), (x2,y2), (0,255,0), 1)
+                    
+        return output_image
+    
+    def detect_circles(self, **kwargs):
+        
+        self.edge_maps['canny'] = self.edge_maps.get('canny') or self.detect_edges(detector_method='canny', **kwargs)
+        edged_image = self.edge_maps['canny']
+        
+         
+        h, w = get_dimensions(self.image)
+        r_max = kwargs['r_max'] or (min(h, w) // 2)
+        
+        # R and Theta ranges
+        dtheta = int(360 / kwargs['num_thetas'])
+        thetas = np.arange(0, 360, step=dtheta)
+        rs = np.arange(kwargs['r_min'], r_max, step=kwargs['delta_r'])
 
+        cos_thetas = np.cos(np.deg2rad(thetas))
+        sin_thetas = np.sin(np.deg2rad(thetas))
+        
+        
+        
+                   
+    
+            
+    
+            
+            
+            

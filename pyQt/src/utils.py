@@ -175,6 +175,27 @@ def gaussian_kernel(size, sigma=1.0):
     kernel = np.outer(gauss, gauss)
     return kernel / np.sum(kernel)  # Normalize kernel to sum to 1
 
+
+def get_dimensions(image):
+    """
+    Get the height and width of an image, handling both grayscale and color images.
+
+    :param image: NumPy array representing the image.
+    :return: Tuple (height, width)
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+
+    if len(image.shape) == 2:  # Grayscale image (H, W)
+        h, w = image.shape
+    elif len(image.shape) == 3:  # Color image (H, W, C)
+        h, w, _ = image.shape
+    else:
+        raise ValueError("Invalid image format. Expected 2D (grayscale) or 3D (color) NumPy array.")
+
+    return h, w
+
+
 def cumsum(arr):
     """
     Computes the cumulative sum of an array.
