@@ -7,6 +7,8 @@ The goal is to minimize the total energy (internal - external - constrain)
 
 import numpy as np 
 from functions.noise_functions import apply_gaussian_filter
+from utils import convert_to_grayscale
+
 
 #contour funcitons
 import numpy as np
@@ -34,6 +36,9 @@ def external_energy(image, sigma=1.0):
     :param sigma: Gaussian smoothing sigma.
     :return: Edge energy, gradient in x, gradient in y.
     """
+    if len(image.shape) == 3:  
+        image = convert_to_grayscale(image)
+    
     smoothed_image = gaussian_filter(image, sigma)
     gy, gx = np.gradient(smoothed_image)
     edge_energy = np.sqrt(gx**2 + gy**2)
