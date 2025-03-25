@@ -163,8 +163,11 @@ def draw_detected_lines(image, edge, detected_lines):
 
 def hough_line_detection(image, **kwargs):
     """Performs full Hough line detection."""
-    edges = detect_edges(image, **kwargs)
-    thetas, rhos, accumulator = initialize_hough_space(edges, **kwargs)
+    edge_param =  {k: v for k, v in kwargs.items() if k in ['low_threshold', 'high_threshold', 'max_edge_val', 'min_edge_val']}
+    init_param = {k: v for k, v in kwargs.items() if k in ['num_theta', 'num_rho']}
+
+    edges = detect_edges(image, **edge_param)
+    thetas, rhos, accumulator = initialize_hough_space(edges, **init_param)
     accumulator = compute_hough_votes(edges, thetas, rhos, accumulator)
     detected_lines = extract_hough_peaks(accumulator, rhos, thetas, kwargs.get('hough_threshold_ratio', 0.5))
     filtered_lines = filter_lines_by_angle(detected_lines)
