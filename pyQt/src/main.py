@@ -1,6 +1,7 @@
 import sys
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 from PyQt5.QtGui import QPixmap, QImage, QIcon
 from PyQt5.QtCore import Qt, QSize
@@ -10,12 +11,112 @@ from classes.histogram_processor import HistogramVisualizationWidget
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
-    QVBoxLayout, QWidget, QScrollArea,QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+    QVBoxLayout, QWidget, QScrollArea,QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox, QGridLayout,
+    QSlider
 )
 
 from processor_factory import ProcessorFactory
 from functions.hough_transform_functions import detect_lines,detect_circles
-from functions.active_contour_functions import initialize_snake, external_energy, gradient_descent_step
+from functions.active_contour_functions import initialize_snake, external_energy
+
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+
+class ActiveContourVisualizationWidget(QWidget):
+    """A separate window to visualize Active Contour evolution and energy maps."""
+
+    def __init__(self,parent, processor = None):
+        super().__init__(parent)
+        self.processor = processor
+        self.history = []
+        self.current_index = 0
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the UI components."""
+        self.setWindowTitle("Active Contour Visualization")
+        self.setGeometry(100, 100, 1200, 800)
+
+        # Create a tab widget to organize visualizations
+        self.tab_widget = QTabWidget()
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.tab_widget)
+
+        # Add tabs for different visualizations
+        self.original_image_label = QLabel()
+        self.internal_energy_label = QLabel()
+        self.external_energy_label = QLabel()
+        self.contour_evolution_label = QLabel()
+
+        self.add_tab(self.original_image_label, "Original Image")
+        self.add_tab(self.internal_energy_label, "Internal Energy")
+        self.add_tab(self.external_energy_label, "External Energy")
+        self.add_tab(self.contour_evolution_label, "Contour Evolution")
+
+        # Slider to navigate through iterations
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(100)
+        self.slider.setValue(50)
+        self.slider.valueChanged.connect(self.update_visualization)
+
+        layout.addWidget(self.slider)
+
+    def add_tab(self, widget, title):
+        """Adds a new tab with the given widget and title."""
+        tab = QWidget()
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.addWidget(widget)
+        self.tab_widget.addTab(tab, title)
+
+    def set_history(self, history):
+        """
+        Receives contour evolution history from the processor and updates visualization.
+        """
+        self.history = history
+        print(len(history))
+        self.slider.setMaximum(len(history) - 1)
+        self.update_visualization()
+
+    def update_visualization(self):
+        """Updates the displayed images based on the current iteration index."""
+        if not self.history:
+            return
+
+        idx = self.slider.value()
+        data = self.history[idx]
+        print(data)
+
+        # Convert images to QPixmap format and update QLabel widgets
+        self.original_image_label.setPixmap(self.numpy_to_pixmap(self.processor.image))
+        self.internal_energy_label.setPixmap(self.numpy_to_pixmap(data["internal_energy"], cmap="hot"))
+        self.external_energy_label.setPixmap(self.numpy_to_pixmap(data["external_energy"], cmap="cool"))
+        self.contour_evolution_label.setPixmap(self.draw_contour(data["snake"]))
+
+    def numpy_to_pixmap(self, array, cmap="gray"):
+
+        if len(array.shape) == 2:  # Grayscale image
+            array = (255 * (array - array.min()) / (array.max() - array.min())).astype(np.uint8)
+            height, width = array.shape
+            qimage = QImage(array.data, width, height, QImage.Format_Grayscale8)
+            return QPixmap.fromImage(qimage)
+        return QPixmap()
+
+    def draw_contour(self, snake):
+        """Draws the active contour over the original image."""
+        img_copy = cv2.cvtColor(self.processor.image.copy(), cv2.COLOR_GRAY2BGR)
+
+        # Draw contour in red
+        for point in snake:
+            x, y = int(point[0]), int(point[1])
+            cv2.circle(img_copy, (x, y), 1, (0, 0, 255), -1)
+
+        return self.numpy_to_pixmap(cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY))
+
+
+
+
 
 class ActiveContourTab(QWidget):
     def __init__(self, parent=None):
@@ -59,6 +160,18 @@ class ActiveContourTab(QWidget):
         self.iterations.setRange(1, 1000)
         self.iterations.setValue(100)
 
+        self.points = QSpinBox()
+        self.points.setRange(1, 10000)
+        self.points.setValue(100)
+        
+        self.w_edge = QSpinBox()
+        self.w_edge.setRange(1, 10)
+        self.w_edge.setValue(100)
+        
+        self.convergence = QSpinBox()
+        self.convergence.setRange(0, 1)
+        self.convergence.setValue(0)
+        
         self.btn_run_snake = QPushButton("Run Active Contour")
         self.btn_run_snake.clicked.connect(parent.run_active_contour)
 
@@ -93,6 +206,21 @@ class ActiveContourTab(QWidget):
         iterations_layout.addWidget(QLabel("Iterations"))
         iterations_layout.addWidget(self.iterations)
         active_contour_layout.addLayout(iterations_layout)
+
+        points_layout = QHBoxLayout()
+        points_layout.addWidget(QLabel("Points"))
+        points_layout.addWidget(self.points)
+        active_contour_layout.addLayout(points_layout)
+        
+        w_edge_layout = QHBoxLayout()
+        w_edge_layout.addWidget(QLabel("Edge weight"))
+        w_edge_layout.addWidget(self.w_edge)
+        active_contour_layout.addLayout(w_edge_layout)
+
+        convergence_layout = QHBoxLayout()
+        convergence_layout.addWidget(QLabel("Convergance"))
+        convergence_layout.addWidget(self.convergence)
+        active_contour_layout.addLayout(convergence_layout)
 
         active_contour_layout.addWidget(self.btn_run_snake)
 
@@ -826,7 +954,8 @@ class MainWindow(QMainWindow):
             "thresholding": {},
             "frequency_filter": {},
             "hybrid_image": {},
-            "shape_detection":{}
+            "shape_detection":{},
+            "active_contour":{}
             
         }
         
@@ -835,7 +964,7 @@ class MainWindow(QMainWindow):
         self.image = None
         self.original_image = None
         self.modified_image = None
-        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
+        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image', 'active_contour']}
 
     def run_active_contour(self):
         """
@@ -844,34 +973,25 @@ class MainWindow(QMainWindow):
         if self.image is None:
             QMessageBox.warning(self, "Warning", "Please load an image first.")
             return
-
-        # Retrieve parameters from the Active Contour tab
-        center = (self.active_contour_tab.centerX.value(), self.active_contour_tab.centerY.value())
-        radius = self.active_contour_tab.radius.value()
-        alpha = self.active_contour_tab.alpha.value()
-        beta = self.active_contour_tab.beta.value()
-        gamma = self.active_contour_tab.gamma.value()
-        iterations = self.active_contour_tab.iterations.value()
+        contour_params = self.params["active_contour"]
 
         # Initialize the snake
-        snake = initialize_snake(center, radius)
+        snake, history = self.processors["active_contour"].detect_contour(**contour_params)
 
-        # Compute the external energy
-        edge_energy, gx, gy = external_energy(self.image)
+        plt.imshow(self.image, cmap='gray')
+        plt.plot(snake[:, 0], snake[:, 1], 'r-', label="Snake Contour")
+        plt.title("Active Contour Result")
+        plt.legend()
+        plt.show()
+        # # Ensure the viewer exists before setting history
+        # if not hasattr(self, 'active_contour_viewer'):
+        #     self.active_contour_viewer = ActiveContourVisualizationWidget(self,self.processors["active_contour"])
+        #     self.image_display_layout.addWidget(self.active_contour_viewer)  # Add widget to layout
 
-        # Perform the iterations
-        for _ in range(iterations):
-            snake = gradient_descent_step(snake, self.image, gx, gy, alpha, beta, gamma)
-
-        # Draw the snake on the image
-        result_image = self.image.copy()
-        for point in snake:
-            x, y = int(point[0]), int(point[1])
-            cv2.circle(result_image, (x, y), 1, (0, 255, 0), -1)
-
-        # Display the result
-        self.modified_image = result_image
-        self.display_image(self.modified_image)
+        # # Update visualization with the contour history
+        # self.active_contour_viewer.set_history(history)
+        # self.active_contour_viewer.show()  # Ensure the widget is displayed 
+            
 
 
     def init_ui(self, main_layout):
@@ -980,12 +1100,12 @@ class MainWindow(QMainWindow):
         image_display_frame = QFrame()
 
         image_display_frame.setFixedSize(1390,880)
-        image_display_layout = QVBoxLayout(image_display_frame)
+        self.image_display_layout = QVBoxLayout(image_display_frame)
 
         self.lbl_image = QLabel("No Image Loaded")
         self.lbl_image.setObjectName("lbl_image")
         self.lbl_image.setAlignment(Qt.AlignCenter)
-        image_display_layout.addWidget(self.lbl_image)
+        self.image_display_layout.addWidget(self.lbl_image)
         self.lbl_image.mouseDoubleClickEvent = self.on_image_label_double_click
 
 
@@ -996,7 +1116,29 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(right_frame)
     
     def connect_signals(self):
+        # Active contour tab
         
+        active_contour_ui = {
+            "center" : (self.active_contour_tab.centerX, self.active_contour_tab.centerY),
+            "radius" : self.active_contour_tab.radius,
+            "alpha" : self.active_contour_tab.alpha,
+            "beta" : self.active_contour_tab.beta,
+            "gamma": self.active_contour_tab.gamma,
+            "iterations" : self.active_contour_tab.iterations,
+            "points": self.active_contour_tab.points,
+            "w_edge" : self.active_contour_tab.w_edge,
+            "convergence" : self.active_contour_tab.convergence
+            
+         } 
+        
+        for widget in active_contour_ui.values():
+            if isinstance(widget, QComboBox):
+                # Connect QComboBox's currentTextChanged signal
+                widget.currentTextChanged.connect(lambda: self.update_params("active_contour", active_contour_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                widget.valueChanged.connect(lambda: self.update_params("active_contour", active_contour_ui))      
+
         # Hough Transform and Shape Detection Tab
         shape_detection_ui = {
             'num_rho': self.hough_transform_tab.numRho,

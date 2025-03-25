@@ -9,6 +9,7 @@ from  classes.histogram_processor import HistogramProcessor
 # from  classes.hybrid_processor import HybridProcessor
 from  classes.image_processor import ImageProcessor
 from  classes.thresholding_processor import ThresholdingProcessor
+from classes.active_contour_processor import ActiveContourProcessor
 
 class ProcessorFactory:
     """
@@ -30,7 +31,8 @@ class ProcessorFactory:
             "frequency": FrequencyProcessor,
             "histogram": HistogramProcessor,
             "thresholding": ThresholdingProcessor,
-            "image": ImageProcessor
+            "image": ImageProcessor,
+            "active_contour": ActiveContourProcessor,
             
         }
 

@@ -3,7 +3,8 @@ import numpy as np
 from functions.active_contour_functions import (
     initialize_snake,
     external_energy,
-    gradient_descent_step
+    internal_energy_matrix,
+    optimize_snake_step
 )
 from utils import convert_to_grayscale, get_dimensions
 
@@ -18,7 +19,7 @@ class ActiveContourProcessor:
         """
         self.image = None  # Input image (grayscale)
         self.snake = None  # Final snake contour
-        self.edge_maps = {}  # Dictionary to store intermediate results
+        self.history = []  # Stores the contour evolution history
 
     def set_image(self, image):
         """
@@ -55,15 +56,30 @@ class ActiveContourProcessor:
         if radius is None:
             radius = min(self.image.shape[0], self.image.shape[1]) // 4
 
+        
+        
         # Compute external energy (image gradient)
         edge_energy, gx, gy = external_energy(self.image, sigma)
-
-        # Initialize snake
+        # Initialize snake and internal energy matrix
         snake = initialize_snake(center, radius, points)
+        print("snake",snake.shape)
+        inv_matrix = internal_energy_matrix(len(snake), alpha, beta, gamma)
+        print("inv_matrix",inv_matrix.shape)
+        # Reset history before running
+        self.history = []
 
-        # Optimize snake
+       # Iteratively optimize snake
         for iter_num in range(iterations):
-            new_snake = gradient_descent_step(snake, self.image, gx, gy, alpha, beta, gamma, w_edge)
+            # Store current state for visualization
+            self.history.append({
+                "iteration": iter_num,
+                "snake": snake.copy(),
+                "internal_energy": inv_matrix.copy(),
+                "external_energy": edge_energy.copy()
+            })
+            
+            
+            new_snake = optimize_snake_step(self.image,snake,inv_matrix , gx, gy, gamma, w_edge)
 
             # Check for convergence
             displacement = np.mean(np.sqrt(np.sum((new_snake - snake) ** 2, axis=1)))
@@ -74,7 +90,7 @@ class ActiveContourProcessor:
             snake = new_snake
 
         self.snake = snake
-        return snake
+        return snake, self.history
 
     def get_contour(self):
         """

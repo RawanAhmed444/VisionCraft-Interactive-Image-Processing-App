@@ -15,69 +15,68 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 def initialize_snake(center, radius, points=100):
-    """
-    Create a circular snake around a given center with a specific radius.
-    
-    :param center: Tuple (x, y) for the center of the snake.
-    :param radius: Radius of the snake.
-    :param points: Number of points in the snake.
-    :return: Array of snake points.
-    """
+    """Create a circular snake around a given center with a specific radius."""
     s = np.linspace(0, 2 * np.pi, points)
     x = center[0] + radius * np.cos(s)
     y = center[1] + radius * np.sin(s)
     return np.array([x, y]).T
 
+def internal_energy_matrix(n_points, alpha=0.1, beta=0.1, gamma=0.1):
+    """Create the internal energy matrix A for smoothness and elasticity."""
+    A = np.zeros((n_points, n_points))
+    for i in range(n_points):
+        A[i, i] = 2 * alpha + 6 * beta
+        A[i, (i - 1) % n_points] = -alpha - 4 * beta
+        A[i, (i + 1) % n_points] = -alpha - 4 * beta
+        A[i, (i - 2) % n_points] = beta
+        A[i, (i + 2) % n_points] = beta
+    return np.linalg.inv(A + gamma * np.eye(n_points))
+
 def external_energy(image, sigma=1.0):
-    """
-    Compute the external energy from the image gradient.
-    
-    :param image: Input image.
-    :param sigma: Gaussian smoothing sigma.
-    :return: Edge energy, gradient in x, gradient in y.
-    """
-    if len(image.shape) == 3:  
-        image = convert_to_grayscale(image)
-    
+    """Compute the edge energy from the image gradient."""
     smoothed_image = gaussian_filter(image, sigma)
     gy, gx = np.gradient(smoothed_image)
     edge_energy = np.sqrt(gx**2 + gy**2)
+    # Normalize gradients
+    gx = gx / np.max(np.abs(gx))
+    gy = gy / np.max(np.abs(gy))
     return edge_energy, gx, gy
 
-def gradient_descent_step(snake, image, gx, gy, alpha=0.1, beta=0.1, gamma=0.1, w_edge=1.0):
+def optimize_snake_step(image, snake, inv_matrix, gx, gy, gamma=0.1, w_edge=1.0):
     """
-    Perform a single gradient descent step to update the snake.
+    Performs a single iteration of the active contour optimization.
     
-    :param snake: Current snake points.
     :param image: Input image.
-    :param gx: Gradient in x-direction.
-    :param gy: Gradient in y-direction.
-    :param alpha: Elasticity weight.
-    :param beta: Curvature weight.
+    :param snake: Current snake contour (Nx2 array).
+    :param inv_matrix: Precomputed internal energy inverse matrix.
+    :param gx: X-gradient of external energy.
+    :param gy: Y-gradient of external energy.
     :param gamma: Step size.
     :param w_edge: Edge force weight.
-    :return: Updated snake points.
+    
+    :return: Updated snake contour (Nx2 array).
     """
-    n = len(snake)
-    new_snake = np.zeros_like(snake)
+    # Interpolate external forces at snake points
+    int_x = np.clip(snake[:, 0].astype(int), 0, image.shape[1] - 1)
+    int_y = np.clip(snake[:, 1].astype(int), 0, image.shape[0] - 1)
 
-    for i in range(n):
-        # Internal forces (smoothness and elasticity)
-        prev = snake[(i - 1) % n]
-        curr = snake[i]
-        next_ = snake[(i + 1) % n]
-        internal_force = alpha * (prev - 2 * curr + next_) + beta * (prev - 2 * curr + next_)
+    fx = gx[int_y, int_x]
+    fy = gy[int_y, int_x]
 
-        # External forces (image gradient)
-        x, y = curr.astype(int)
-        x = np.clip(x, 0, image.shape[1] - 1)
-        y = np.clip(y, 0, image.shape[0] - 1)
-        external_force = w_edge * np.array([gx[y, x], gy[y, x]])
+    # Normalize external forces
+    force_magnitude = np.sqrt(fx**2 + fy**2)
+    force_magnitude[force_magnitude == 0] = 1  # Avoid division by zero
+    fx /= force_magnitude
+    fy /= force_magnitude
 
-        # Update snake point
-        new_snake[i] = curr + gamma * (internal_force + external_force)
+    # External force vector
+    force = np.stack([fx, fy], axis=1) * w_edge
+    print("force",force.shape)
 
-    # Clip snake points to image boundaries
+    # Update snake using internal and external forces
+    new_snake = np.dot(inv_matrix, snake + gamma * force)
+
+    # Ensure snake points stay within image boundaries
     new_snake[:, 0] = np.clip(new_snake[:, 0], 0, image.shape[1] - 1)
     new_snake[:, 1] = np.clip(new_snake[:, 1], 0, image.shape[0] - 1)
 
