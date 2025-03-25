@@ -13,17 +13,14 @@ QFrame#noise_frame {
     padding: 15px;
 }
 
-QFrame#circle_group_frame {
+QFrame#circle_group_frame,#ellipse_group_frame,#line_group_frame {
     background-color: rgb(4, 3, 26);
     border: 2px solid rgb(40, 57, 153);
     padding: 15px;
 }
 
-QFrame#line_group_frame {
-    background-color: rgb(4, 3, 26);
-    border: 2px solid rgb(40, 57, 153);
-    padding: 15px;
-}
+
+
 
 /* Filter Frame */
 QFrame#filter_frame {
@@ -53,6 +50,11 @@ QFrame#frequency_filter_frame {
 
 /* Hybrid Image Frame */
 QFrame#hybrid_image_frame {
+    background-color: rgb(4, 3, 26);
+    padding: 15px;
+}
+
+QFrame#active_contour_frame{
     background-color: rgb(4, 3, 26);
     padding: 15px;
 }

@@ -1,6 +1,7 @@
 import sys
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 from PyQt5.QtGui import QPixmap, QImage, QIcon
 from PyQt5.QtCore import Qt, QSize
@@ -10,21 +11,312 @@ from classes.histogram_processor import HistogramVisualizationWidget
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QFileDialog, QFrame,QTabWidget,QSpacerItem,QSizePolicy,
-    QVBoxLayout, QWidget, QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+    QVBoxLayout, QWidget, QScrollArea,QMessageBox, QComboBox, QSpinBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox, QGridLayout,
+    QSlider
 )
 
 from processor_factory import ProcessorFactory
 from functions.hough_transform_functions import detect_lines,detect_circles
+from functions.active_contour_functions import initialize_snake, external_energy
+
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+
+from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout,
+                             QPushButton, QSlider, QScrollArea, QTabWidget)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage
+import numpy as np
+import cv2
+
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSlider,
+    QGridLayout, QScrollArea
+)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+import numpy as np
+import cv2
+
+class VisualizationPanel(QWidget):
+    def __init__(self, parent=None, processor=None):
+        super().__init__(parent)
+        self.processor = processor
+        self.history = []
+        self.init_ui()
+
+    def init_ui(self):
+        main_layout = QVBoxLayout(self)
+        
+        # Scroll Area for Visualization Grid
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        container = QWidget()
+        grid_layout = QGridLayout(container)
+        
+        self.original_image_label = QLabel()
+        self.original_image_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.original_image_label, 0, 0)
+        
+        self.internal_energy_label = QLabel()
+        self.internal_energy_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.internal_energy_label, 0, 1)
+        
+        self.external_energy_label = QLabel()
+        self.external_energy_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.external_energy_label, 1, 0)
+        
+        self.contour_evolution_label = QLabel()
+        self.contour_evolution_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.contour_evolution_label, 1, 1)
+        
+        scroll_area.setWidget(container)
+        main_layout.addWidget(scroll_area)
+        
+        # Navigation controls
+        control_layout = QHBoxLayout()
+        
+        self.prev_button = QPushButton("Previous")
+        self.prev_button.clicked.connect(self.prev_iteration)
+        
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(100)
+        self.slider.setValue(0)
+        self.slider.valueChanged.connect(self.update_visualization)
+        
+        self.next_button = QPushButton("Next")
+        self.next_button.clicked.connect(self.next_iteration)
+        
+        self.iteration_label = QLabel("Iteration: 0/0")
+        
+        control_layout.addWidget(self.prev_button)
+        control_layout.addWidget(self.slider)
+        control_layout.addWidget(self.next_button)
+        control_layout.addWidget(self.iteration_label)
+        
+        main_layout.addLayout(control_layout)
+    
+    def set_history(self, history):
+        self.history = history
+        if history:
+            self.slider.setMaximum(len(history) - 1)
+            self.iteration_label.setText(f"Iteration: 0/{len(history)-1}")
+            self.update_visualization()
+
+    def update_visualization(self):
+        if not self.history:
+            return
+
+        idx = self.slider.value()
+        data = self.history[idx]
+        self.iteration_label.setText(f"Iteration: {idx}/{len(self.history)-1}")
+        
+        self.original_image_label.setPixmap(self.numpy_to_pixmap(self.processor.image))
+        self.internal_energy_label.setPixmap(self.numpy_to_pixmap(data["internal_energy"], cmap="hot"))
+        self.external_energy_label.setPixmap(self.numpy_to_pixmap(data["external_energy"], cmap="cool"))
+        self.contour_evolution_label.setPixmap(self.draw_contour(data["snake"]))
+    
+    def prev_iteration(self):
+        if self.slider.value() > 0:
+            self.slider.setValue(self.slider.value() - 1)
+    
+    def next_iteration(self):
+        if self.slider.value() < self.slider.maximum():
+            self.slider.setValue(self.slider.value() + 1)
+    
+    def numpy_to_pixmap(self, array, cmap="gray"):
+        if array is None or array.size == 0:
+            return QPixmap()
+        
+        array = (255 * (array - array.min()) / (array.max() - array.min())).astype(np.uint8)
+        
+        if cmap == "hot":
+            array = cv2.applyColorMap(array, cv2.COLORMAP_HOT)
+        elif cmap == "cool":
+            array = cv2.applyColorMap(array, cv2.COLORMAP_COOL)
+        
+        height, width = array.shape[:2]
+        bytes_per_line = 3 * width
+        qimage = QImage(array.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
+        return QPixmap.fromImage(qimage)
+    
+    def draw_contour(self, snake):
+        if snake is None or len(snake) == 0:
+            return QPixmap()
+        
+        img_copy = cv2.cvtColor(self.processor.image.copy(), cv2.COLOR_GRAY2BGR)
+        pts = np.array(snake, np.int32).reshape((-1,1,2))
+        cv2.polylines(img_copy, [pts], True, (0,0,255), 1)
+        for point in snake:
+            cv2.circle(img_copy, tuple(point.astype(int)), 2, (0, 0, 255), -1)
+        return self.numpy_to_pixmap(img_copy)
+
+class ActiveContourTab(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        main_layout = QVBoxLayout(self)
+
+        active_contour_frame = QFrame()
+        active_contour_frame.setObjectName("active_contour_frame")
+        active_contour_layout = QVBoxLayout(active_contour_frame)
+        active_contour_layout.setAlignment(Qt.AlignTop)
+
+        self.centerX = QSpinBox()
+        self.centerX.setRange(0, 1000)
+        self.centerX.setValue(250)
+
+        self.centerY = QSpinBox()
+        self.centerY.setRange(0, 1000)
+        self.centerY.setValue(200)
+
+        self.radius = QSpinBox()
+        self.radius.setRange(1, 500)
+        self.radius.setValue(200)
+
+        self.alpha = QDoubleSpinBox()
+        self.alpha.setRange(0.0, 10.0)
+        self.alpha.setSingleStep(0.1)
+        self.alpha.setValue(0.5)
+
+        self.beta = QDoubleSpinBox()
+        self.beta.setRange(0.0, 10.0)
+        self.beta.setSingleStep(0.1)
+        self.beta.setValue(0.7)
+
+        self.gamma = QDoubleSpinBox()
+        self.gamma.setRange(0.0, 10.0)
+        self.gamma.setSingleStep(0.1)
+        self.gamma.setValue(1)
+
+        self.iterations = QSpinBox()
+        self.iterations.setRange(1, 10000)
+        self.iterations.setValue(1000)
+
+        self.points = QSpinBox()
+        self.points.setRange(1, 10000)
+        self.points.setValue(100)
+        
+        self.w_edge = QSpinBox()
+        self.w_edge.setRange(1, 10)
+        self.w_edge.setValue(10)
+        
+        self.convergence = QSpinBox()
+        self.convergence.setRange(0, 1)
+        self.beta.setSingleStep(0.01)
+        self.convergence.setValue(0)
+        
+        self.btn_run_snake = QPushButton("Run Active Contour")
+        self.btn_run_snake.clicked.connect(parent.run_active_contour)
+
+        center_layout = QHBoxLayout()
+        center_layout.addWidget(QLabel("Center X"))
+        center_layout.addWidget(self.centerX)
+        center_layout.addWidget(QLabel("Center Y"))
+        center_layout.addWidget(self.centerY)
+        active_contour_layout.addLayout(center_layout)
+
+        radius_layout = QHBoxLayout()
+        radius_layout.addWidget(QLabel("Radius"))
+        radius_layout.addWidget(self.radius)
+        active_contour_layout.addLayout(radius_layout)
+
+        alpha_layout = QHBoxLayout()
+        alpha_layout.addWidget(QLabel("Alpha"))
+        alpha_layout.addWidget(self.alpha)
+        active_contour_layout.addLayout(alpha_layout)
+
+        beta_layout = QHBoxLayout()
+        beta_layout.addWidget(QLabel("Beta"))
+        beta_layout.addWidget(self.beta)
+        active_contour_layout.addLayout(beta_layout)
+
+        gamma_layout = QHBoxLayout()
+        gamma_layout.addWidget(QLabel("Gamma"))
+        gamma_layout.addWidget(self.gamma)
+        active_contour_layout.addLayout(gamma_layout)
+
+        iterations_layout = QHBoxLayout()
+        iterations_layout.addWidget(QLabel("Iterations"))
+        iterations_layout.addWidget(self.iterations)
+        active_contour_layout.addLayout(iterations_layout)
+
+        points_layout = QHBoxLayout()
+        points_layout.addWidget(QLabel("Points"))
+        points_layout.addWidget(self.points)
+        active_contour_layout.addLayout(points_layout)
+        
+        w_edge_layout = QHBoxLayout()
+        w_edge_layout.addWidget(QLabel("Edge weight"))
+        w_edge_layout.addWidget(self.w_edge)
+        active_contour_layout.addLayout(w_edge_layout)
+
+        convergence_layout = QHBoxLayout()
+        convergence_layout.addWidget(QLabel("Convergance"))
+        convergence_layout.addWidget(self.convergence)
+        active_contour_layout.addLayout(convergence_layout)
+
+        active_contour_layout.addWidget(self.btn_run_snake)
+
+        main_layout.addWidget(active_contour_frame)
 
 class HoughTransformTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-        hough_transform_layout = QVBoxLayout(self)
 
-        hough_frame = QFrame()
-        hough_frame.setObjectName("hough_frame")
-        hough_layout = QVBoxLayout(hough_frame)
+        # Create a scroll area
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Hide horizontal scrollbar
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar
+
+        # Create a widget to hold the content
+        content_widget = QWidget()
+        scroll_area.setWidget(content_widget)
+
+        # Main layout for the tab
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(scroll_area)
+
+        # Layout for the content inside the scroll area
+        hough_transform_layout = QVBoxLayout(content_widget)
+
+        ############################## Shared Canny Detector Parameters ##############################
+        canny_group_frame = QFrame()
+        canny_group_frame.setObjectName("canny_group_frame")
+        canny_layout = QVBoxLayout(canny_group_frame)
+
+        self.cannyLowThreshold = QSpinBox()
+        self.cannyLowThreshold.setRange(0, 255)
+        self.cannyLowThreshold.setValue(50)
+
+        self.cannyHighThreshold = QSpinBox()
+        self.cannyHighThreshold.setRange(0, 255)
+        self.cannyHighThreshold.setValue(150)
+
+        self.cannyBlurKSize = QSpinBox()
+        self.cannyBlurKSize.setRange(1, 15)
+        self.cannyBlurKSize.setValue(5)
+
+        low_threshold_layout = QHBoxLayout()
+        low_threshold_layout.addWidget(QLabel("Canny Low Threshold"))
+        low_threshold_layout.addWidget(self.cannyLowThreshold)
+        canny_layout.addLayout(low_threshold_layout)
+
+        high_threshold_layout = QHBoxLayout()
+        high_threshold_layout.addWidget(QLabel("Canny High Threshold"))
+        high_threshold_layout.addWidget(self.cannyHighThreshold)
+        canny_layout.addLayout(high_threshold_layout)
+
+        blur_ksize_layout = QHBoxLayout()
+        blur_ksize_layout.addWidget(QLabel("Blur Kernel Size"))
+        blur_ksize_layout.addWidget(self.cannyBlurKSize)
+        canny_layout.addLayout(blur_ksize_layout)
+
+        hough_transform_layout.addWidget(canny_group_frame)
 
         ############################## Line Detection Parameters ##############################
         line_group_frame = QFrame()
@@ -38,18 +330,6 @@ class HoughTransformTab(QWidget):
         self.numTheta = QSpinBox()
         self.numTheta.setRange(1, 500)
         self.numTheta.setValue(180)
-
-        self.blurKSize = QSpinBox()
-        self.blurKSize.setRange(1, 15)
-        self.blurKSize.setValue(5)
-
-        self.lowThreshold = QSpinBox()
-        self.lowThreshold.setRange(0, 255)
-        self.lowThreshold.setValue(50)
-
-        self.highThreshold = QSpinBox()
-        self.highThreshold.setRange(0, 255)
-        self.highThreshold.setValue(150)
 
         self.houghThresholdRatio = QDoubleSpinBox()
         self.houghThresholdRatio.setRange(0.0, 1.0)
@@ -69,21 +349,6 @@ class HoughTransformTab(QWidget):
         num_theta_layout.addWidget(self.numTheta)
         line_layout.addLayout(num_theta_layout)
 
-        blur_ksize_layout = QHBoxLayout()
-        blur_ksize_layout.addWidget(QLabel("Blur Kernel Size"))
-        blur_ksize_layout.addWidget(self.blurKSize)
-        line_layout.addLayout(blur_ksize_layout)
-
-        low_threshold_layout = QHBoxLayout()
-        low_threshold_layout.addWidget(QLabel("Low Threshold"))
-        low_threshold_layout.addWidget(self.lowThreshold)
-        line_layout.addLayout(low_threshold_layout)
-
-        high_threshold_layout = QHBoxLayout()
-        high_threshold_layout.addWidget(QLabel("High Threshold"))
-        high_threshold_layout.addWidget(self.highThreshold)
-        line_layout.addLayout(high_threshold_layout)
-
         hough_threshold_ratio_layout = QHBoxLayout()
         hough_threshold_ratio_layout.addWidget(QLabel("Hough Threshold Ratio"))
         hough_threshold_ratio_layout.addWidget(self.houghThresholdRatio)
@@ -91,18 +356,12 @@ class HoughTransformTab(QWidget):
 
         line_layout.addWidget(self.btn_detect_lines)
 
+        hough_transform_layout.addWidget(line_group_frame)
+
         ############################## Circle Detection Parameters ##############################
         circle_group_frame = QFrame()
         circle_group_frame.setObjectName("circle_group_frame")
         circle_layout = QVBoxLayout(circle_group_frame)
-
-        self.minEdgeThreshold = QSpinBox()
-        self.minEdgeThreshold.setRange(0, 255)
-        self.minEdgeThreshold.setValue(50)
-
-        self.maxEdgeThreshold = QSpinBox()
-        self.maxEdgeThreshold.setRange(0, 255)
-        self.maxEdgeThreshold.setValue(150)
 
         self.rMin = QSpinBox()
         self.rMin.setRange(1, 100)
@@ -112,31 +371,12 @@ class HoughTransformTab(QWidget):
         self.rMax.setRange(1, 500)
         self.rMax.setValue(100)
 
-        self.deltaR = QSpinBox()
-        self.deltaR.setRange(1, 10)
-        self.deltaR.setValue(1)
-
         self.numThetas = QSpinBox()
         self.numThetas.setRange(1, 360)
         self.numThetas.setValue(50)
 
-        self.binThreshold = QDoubleSpinBox()
-        self.binThreshold.setRange(0.0, 1.0)
-        self.binThreshold.setSingleStep(0.1)
-        self.binThreshold.setValue(0.4)
-
         self.btn_detect_circles = QPushButton("Detect Circles")
         self.btn_detect_circles.clicked.connect(parent.detect_circles)
-
-        min_edge_threshold_layout = QHBoxLayout()
-        min_edge_threshold_layout.addWidget(QLabel("Min Edge Threshold"))
-        min_edge_threshold_layout.addWidget(self.minEdgeThreshold)
-        circle_layout.addLayout(min_edge_threshold_layout)
-
-        max_edge_threshold_layout = QHBoxLayout()
-        max_edge_threshold_layout.addWidget(QLabel("Max Edge Threshold"))
-        max_edge_threshold_layout.addWidget(self.maxEdgeThreshold)
-        circle_layout.addLayout(max_edge_threshold_layout)
 
         r_min_layout = QHBoxLayout()
         r_min_layout.addWidget(QLabel("Min Radius"))
@@ -148,27 +388,90 @@ class HoughTransformTab(QWidget):
         r_max_layout.addWidget(self.rMax)
         circle_layout.addLayout(r_max_layout)
 
-        delta_r_layout = QHBoxLayout()
-        delta_r_layout.addWidget(QLabel("Delta Radius"))
-        delta_r_layout.addWidget(self.deltaR)
-        circle_layout.addLayout(delta_r_layout)
-
         num_thetas_layout = QHBoxLayout()
         num_thetas_layout.addWidget(QLabel("Num Thetas"))
         num_thetas_layout.addWidget(self.numThetas)
         circle_layout.addLayout(num_thetas_layout)
 
-        bin_threshold_layout = QHBoxLayout()
-        bin_threshold_layout.addWidget(QLabel("Bin Threshold"))
-        bin_threshold_layout.addWidget(self.binThreshold)
-        circle_layout.addLayout(bin_threshold_layout)
-
         circle_layout.addWidget(self.btn_detect_circles)
 
-        hough_layout.addWidget(line_group_frame)
-        hough_layout.addWidget(circle_group_frame)
-        hough_transform_layout.addWidget(hough_frame)
+        hough_transform_layout.addWidget(circle_group_frame)
 
+        ############################## Ellipse Detection Parameters ##############################
+        ellipse_group_frame = QFrame()
+        ellipse_group_frame.setObjectName("ellipse_group_frame")
+        ellipse_layout = QVBoxLayout(ellipse_group_frame)
+
+        self.aMin = QSpinBox()
+        self.aMin.setRange(1, 500)
+        self.aMin.setValue(20)
+
+        self.aMax = QSpinBox()
+        self.aMax.setRange(1, 500)
+        self.aMax.setValue(100)
+
+        self.bMin = QSpinBox()
+        self.bMin.setRange(1, 500)
+        self.bMin.setValue(10)
+
+        self.bMax = QSpinBox()
+        self.bMax.setRange(1, 500)
+        self.bMax.setValue(50)
+
+        self.thetaStep = QSpinBox()
+        self.thetaStep.setRange(1, 180)
+        self.thetaStep.setValue(10)
+
+        self.ellipseThresholdRatio = QDoubleSpinBox()
+        self.ellipseThresholdRatio.setRange(0.0, 1.0)
+        self.ellipseThresholdRatio.setSingleStep(0.1)
+        self.ellipseThresholdRatio.setValue(0.5)
+
+        self.minDist = QSpinBox()
+        self.minDist.setRange(1, 100)
+        self.minDist.setValue(20)
+
+        self.btn_detect_ellipses = QPushButton("Detect Ellipses")
+        # self.btn_detect_ellipses.clicked.connect(parent.detect_ellipses)
+
+        a_min_layout = QHBoxLayout()
+        a_min_layout.addWidget(QLabel("Min Semi-Major Axis (aMin)"))
+        a_min_layout.addWidget(self.aMin)
+        ellipse_layout.addLayout(a_min_layout)
+
+        a_max_layout = QHBoxLayout()
+        a_max_layout.addWidget(QLabel("Max Semi-Major Axis (aMax)"))
+        a_max_layout.addWidget(self.aMax)
+        ellipse_layout.addLayout(a_max_layout)
+
+        b_min_layout = QHBoxLayout()
+        b_min_layout.addWidget(QLabel("Min Semi-Minor Axis (bMin)"))
+        b_min_layout.addWidget(self.bMin)
+        ellipse_layout.addLayout(b_min_layout)
+
+        b_max_layout = QHBoxLayout()
+        b_max_layout.addWidget(QLabel("Max Semi-Minor Axis (bMax)"))
+        b_max_layout.addWidget(self.bMax)
+        ellipse_layout.addLayout(b_max_layout)
+
+        theta_step_layout = QHBoxLayout()
+        theta_step_layout.addWidget(QLabel("Theta Step"))
+        theta_step_layout.addWidget(self.thetaStep)
+        ellipse_layout.addLayout(theta_step_layout)
+
+        ellipse_threshold_ratio_layout = QHBoxLayout()
+        ellipse_threshold_ratio_layout.addWidget(QLabel("Threshold Ratio"))
+        ellipse_threshold_ratio_layout.addWidget(self.ellipseThresholdRatio)
+        ellipse_layout.addLayout(ellipse_threshold_ratio_layout)
+
+        min_dist_layout = QHBoxLayout()
+        min_dist_layout.addWidget(QLabel("Min Distance Between Ellipses"))
+        min_dist_layout.addWidget(self.minDist)
+        ellipse_layout.addLayout(min_dist_layout)
+
+        ellipse_layout.addWidget(self.btn_detect_ellipses)
+
+        hough_transform_layout.addWidget(ellipse_group_frame)
 
 class NoiseFilterTab(QWidget):
     def __init__(self, parent=None):
@@ -688,7 +991,8 @@ class MainWindow(QMainWindow):
             "thresholding": {},
             "frequency_filter": {},
             "hybrid_image": {},
-            "shape_detection":{}
+            "shape_detection":{},
+            "active_contour":{}
             
         }
         
@@ -697,7 +1001,40 @@ class MainWindow(QMainWindow):
         self.image = None
         self.original_image = None
         self.modified_image = None
-        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image']}
+        self.processors = {key: ProcessorFactory.create_processor(key) for key in ['noise', 'edge_detector', 'thresholding', 'frequency', 'histogram', 'image', 'active_contour']}
+
+    def run_active_contour(self):
+        """
+        Runs the Active Contour (Snake) algorithm on the loaded image.
+        """
+        if self.image is None:
+            QMessageBox.warning(self, "Warning", "Please load an image first.")
+            return
+        contour_params = self.params["active_contour"]
+
+        # Initialize the snake
+        snake, history = self.processors["active_contour"].detect_contour(**contour_params)
+
+        self.processors["active_contour"].visualize_contour()
+
+        # Clear the layout before adding a new widget
+        # while self.image_display_layout.count():
+        #     item = self.image_display_layout.takeAt(0)
+        #     if item.widget():
+        #         item.widget().deleteLater()
+
+        # Create and add the VisualizationPanel
+        # self.active_contour_viewer = VisualizationPanel(self, self.processors["active_contour"])
+        # self.active_contour_viewer.set_history(history)
+
+        # self.image_display_layout.addWidget(self.active_contour_viewer)  # Add widget to layout
+        # plt.imshow(self.image, cmap='gray')
+        # plt.plot(snake[:, 0], snake[:, 1], 'r-', label="Snake Contour")
+        # plt.title("Active Contour Result")
+        # plt.legend()
+        # plt.show()
+        # Ensure the widget is displayed
+        # self.active_contour_viewer.show()
 
 
     def init_ui(self, main_layout):
@@ -732,6 +1069,9 @@ class MainWindow(QMainWindow):
         self.hough_transform_tab = HoughTransformTab(self)
         tab_widget.addTab(self.hough_transform_tab, "Hough Transform")
 
+        self.active_contour_tab = ActiveContourTab(self)
+        tab_widget.addTab(self.active_contour_tab, "Active Contour")
+
         
         left_layout.addWidget(tab_widget)
         main_layout.addWidget(left_frame)
@@ -740,7 +1080,7 @@ class MainWindow(QMainWindow):
         right_frame = QFrame()
         right_frame.setObjectName("right_frame")
         right_layout = QVBoxLayout(right_frame)
-        right_layout.setAlignment(Qt.AlignHCenter)
+        right_layout.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         
         # Control Buttons Frame
         control_frame = QFrame()
@@ -768,13 +1108,6 @@ class MainWindow(QMainWindow):
         self.btn_normalize.setIconSize(QSize(32, 32))
         self.btn_normalize.clicked.connect(self.normalize)
         control_buttons_layout.addWidget(self.btn_normalize)
-
-        #we will edit this part
-        self.btn_snake = QPushButton()
-        self.btn_snake.setIcon(QIcon(os.path.join(os.path.dirname(__file__), '../resources/contour-map.png')))
-        self.btn_snake.setIconSize(QSize(32, 32))
-        # self.btn_snake.clicked.connect(self.run_snake)
-        control_buttons_layout.addWidget(self.btn_snake)
 
         control_layout.addWidget(control_buttons_frame)
 
@@ -808,14 +1141,14 @@ class MainWindow(QMainWindow):
 
         # Image Display Frame
         image_display_frame = QFrame()
-        image_display_frame.setMaximumWidth(1390)
-        image_display_frame.setMinimumWidth(1390)
-        image_display_layout = QVBoxLayout(image_display_frame)
+
+        image_display_frame.setFixedSize(1390,880)
+        self.image_display_layout = QVBoxLayout(image_display_frame)
 
         self.lbl_image = QLabel("No Image Loaded")
         self.lbl_image.setObjectName("lbl_image")
         self.lbl_image.setAlignment(Qt.AlignCenter)
-        image_display_layout.addWidget(self.lbl_image)
+        self.image_display_layout.addWidget(self.lbl_image)
         self.lbl_image.mouseDoubleClickEvent = self.on_image_label_double_click
 
 
@@ -826,24 +1159,50 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(right_frame)
     
     def connect_signals(self):
+        # Active contour tab
         
-        #hough_transform and shape detection tab
+        active_contour_ui = {
+            "center" : (self.active_contour_tab.centerX, self.active_contour_tab.centerY),
+            "radius" : self.active_contour_tab.radius,
+            "alpha" : self.active_contour_tab.alpha,
+            "beta" : self.active_contour_tab.beta,
+            "gamma": self.active_contour_tab.gamma,
+            "iterations" : self.active_contour_tab.iterations,
+            "points": self.active_contour_tab.points,
+            "w_edge" : self.active_contour_tab.w_edge,
+            "convergence" : self.active_contour_tab.convergence
+            
+         } 
+        
+        for widget in active_contour_ui.values():
+            if isinstance(widget, QComboBox):
+                # Connect QComboBox's currentTextChanged signal
+                widget.currentTextChanged.connect(lambda: self.update_params("active_contour", active_contour_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                widget.valueChanged.connect(lambda: self.update_params("active_contour", active_contour_ui))      
+
+        # Hough Transform and Shape Detection Tab
         shape_detection_ui = {
-            'num_rho' : self.hough_transform_tab.numRho,
+            'num_rho': self.hough_transform_tab.numRho,
             'num_theta': self.hough_transform_tab.numTheta,
-            'blur_ksize': self.hough_transform_tab.blurKSize,
-            'hough_threshold_ratio':self.hough_transform_tab.houghThresholdRatio,
-            'r_min' : self.hough_transform_tab.rMin,
+            'hough_threshold_ratio': self.hough_transform_tab.houghThresholdRatio,
+            'r_min': self.hough_transform_tab.rMin,
             'r_max': self.hough_transform_tab.rMax,
-            'num_thetas' : self.hough_transform_tab.numThetas         
+            'num_thetas': self.hough_transform_tab.numThetas,
+            # Shared Canny Detector Parameters
+            'canny_low_threshold': self.hough_transform_tab.cannyLowThreshold,
+            'canny_high_threshold': self.hough_transform_tab.cannyHighThreshold,
+            'canny_blur_ksize': self.hough_transform_tab.cannyBlurKSize
         }
+
         for widget in shape_detection_ui.values():
-                if isinstance(widget, QComboBox):
-                    # Connect QComboBox's currentTextChanged signal
-                    widget.currentTextChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))
-                elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                    # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
-                    widget.valueChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))      
+            if isinstance(widget, QComboBox):
+                # Connect QComboBox's currentTextChanged signal
+                widget.currentTextChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))
+            elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+                # Connect QSpinBox/QDoubleSpinBox's valueChanged signal
+                widget.valueChanged.connect(lambda: self.update_params("shape_detection", shape_detection_ui))      
 
         
         # Noise & Filter Tab
