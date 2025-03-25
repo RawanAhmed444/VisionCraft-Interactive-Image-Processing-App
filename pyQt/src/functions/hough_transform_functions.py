@@ -21,8 +21,8 @@ def detect_lines(image = None, num_rho=180, num_theta=180, blur_ksize=5, low_thr
     '''
     
     # Apply Canny Edge Detection
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blured_image = cv2.GaussianBlur(gray_image, (blur_ksize, blur_ksize), 0)
+    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blured_image = cv2.GaussianBlur(image, (blur_ksize, blur_ksize), 0)
     edged_image = canny_edge_detection(blured_image)
 
     # Image dimensions
@@ -83,18 +83,18 @@ def get_dimensions(image):
     """Returns height and width of the image."""
     return image.shape[:2]
 
-def detect_edges(image, method="canny", **kwargs):
+def detect_edges(image, method="canny", low_threshold=10, high_threshold=30):
     """Detects edges in an image using the specified method."""
     if method == "canny":
-        return canny_edge_detection(image)
+        return cv2.Canny(image, low_threshold, high_threshold)
     raise ValueError("Unsupported edge detection method.")
 
 def initialize_hough_space(image, num_theta=180, num_rho=None):
     """Initializes the Hough space parameter grid."""
-    h, w = get_dimensions(image)
+    h, w = image.shape[:2]
     max_rho = int(np.ceil(np.sqrt(h**2 + w**2)))
-    num_rho = num_rho if num_rho else 2 * max_rho
-    
+    num_rho = num_rho or (2 * max_rho)
+
     thetas = np.deg2rad(np.linspace(0, 180, num_theta))
     rhos = np.linspace(-max_rho, max_rho, num_rho)
 
@@ -146,30 +146,41 @@ def filter_lines_by_angle(lines, min_angle=10, max_angle=170):
 def draw_detected_lines(image, edge, detected_lines):
     """Draws detected lines on the original image."""
     output_image = image.copy()
-    h, w = get_dimensions(edge)
+    h, w = edge.shape
 
     for rho, theta in detected_lines:
         a = np.cos(theta)
         b = np.sin(theta)
-        x0 = (a * rho)
-        y0 = (b * rho) 
+        x0 = a * rho
+        y0 = b * rho
         x1 = int(x0 + 1000 * (-b))
         y1 = int(y0 + 1000 * (a))
         x2 = int(x0 - 1000 * (-b))
         y2 = int(y0 - 1000 * (a))
-        output_image = cv2.line(output_image, (x1,y1), (x2,y2), (0,255,0), 1)
+        output_image = cv2.line(output_image, (x1, y1), (x2, y2), (0, 255, 0), 1)
         
     return output_image
 
 def hough_line_detection(image, **kwargs):
     """Performs full Hough line detection."""
-    edges = detect_edges(image, **kwargs)
-    thetas, rhos, accumulator = initialize_hough_space(edges, **kwargs)
-    accumulator = compute_hough_votes(edges, thetas, rhos, accumulator)
-    detected_lines = extract_hough_peaks(accumulator, rhos, thetas, kwargs.get('hough_threshold_ratio', 0.5))
-    filtered_lines = filter_lines_by_angle(detected_lines)
+    # Extract only needed parameters explicitly
+    low_threshold = kwargs.get("low_threshold", 10)
+    high_threshold = kwargs.get("high_threshold", 30)
+    num_theta = kwargs.get("num_theta", 180)
+    num_rho = kwargs.get("num_rho", None)
+    hough_threshold_ratio = kwargs.get("hough_threshold_ratio", 0.5)
+    min_distance = kwargs.get("min_distance", 10)
+    min_angle = kwargs.get("min_angle", 10)
+    max_angle = kwargs.get("max_angle", 170)
 
-    return draw_detected_lines(image, edges,filtered_lines)
+    # Run each stage with extracted parameters
+    edges = detect_edges(image, low_threshold=low_threshold, high_threshold=high_threshold)
+    thetas, rhos, accumulator = initialize_hough_space(edges, num_theta=num_theta, num_rho=num_rho)
+    accumulator = compute_hough_votes(edges, thetas, rhos, accumulator)
+    detected_lines = extract_hough_peaks(accumulator, rhos, thetas, threshold_ratio=hough_threshold_ratio, min_distance=min_distance)
+    filtered_lines = filter_lines_by_angle(detected_lines, min_angle=min_angle, max_angle=max_angle)
+
+    return draw_detected_lines(image, edges, filtered_lines)
 
 def initialize_hough_circle_space(image, r_min, r_max):
     """Initializes the 3D Hough space for circle detection."""

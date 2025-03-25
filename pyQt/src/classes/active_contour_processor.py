@@ -7,7 +7,8 @@ from functions.active_contour_functions import (
     optimize_snake_step
 )
 from utils import convert_to_grayscale, get_dimensions
-
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 class ActiveContourProcessor:
     """
     A class to perform active contour segmentation.
@@ -30,8 +31,8 @@ class ActiveContourProcessor:
         # Convert to grayscale if necessary
         self.image = convert_to_grayscale(image)
 
-    def detect_contour(self, center=None, radius=None, alpha=0.1, beta=0.1, gamma=0.1,
-                       w_edge=1.0, sigma=1.0, iterations=250, convergence=0.01, points=100):
+    def detect_contour(self, center=None, radius=None, alpha=0.5, beta=0.7, gamma=1,
+                       w_edge=10, sigma=1.4, iterations=1000, convergence=0.0, points=100):
         """
         Detects the contour using the active contour algorithm.
         
@@ -77,7 +78,7 @@ class ActiveContourProcessor:
                 "internal_energy": inv_matrix.copy(),
                 "external_energy": edge_energy.copy()
             })
-            
+            print(f"histry {len(self.history)}")
             
             new_snake = optimize_snake_step(self.image,snake,inv_matrix , gx, gy, gamma, w_edge)
 
@@ -100,17 +101,38 @@ class ActiveContourProcessor:
         """
         return self.snake
 
-    def visualize_contour(self):
-        """
-        Visualizes the final snake contour over the input image.
-        """
-        if self.image is None or self.snake is None:
-            raise ValueError("No image or contour available. Run detect_contour() first.")
 
-        plt.figure(figsize=(8, 8))
-        plt.imshow(self.image, cmap='gray')
-        plt.plot(self.snake[:, 0], self.snake[:, 1], 'r-', linewidth=2, label="Final Contour")
-        plt.title("Active Contour Segmentation")
-        plt.legend()
-        plt.xticks([]), plt.yticks([])  # Hide axis ticks
-        plt.show()
+
+    def visualize_contour(self):
+        if self.image is None or not self.history:
+            raise ValueError("No image or history available. Run detect_contour() first.")
+
+        fig, ax_img = plt.subplots(figsize=(7, 5))
+        plt.subplots_adjust(bottom=0.25)  # More space for slider
+
+        ax_img.imshow(self.image, cmap='gray')
+        contour_line, = ax_img.plot([], [], 'r-', linewidth=2, label="Snake Contour")
+        ax_img.set_title("Active Contour Result")
+        ax_img.legend()
+
+        def update_plot(iteration):
+            iteration = int(iteration)
+            data = self.history[iteration]
+
+            contour_line.set_data(data["snake"][:, 0], data["snake"][:, 1])
+            ax_img.set_title(f"Iteration {iteration}")
+
+            fig.canvas.draw_idle()
+            fig.canvas.flush_events()  # Ensure real-time updates
+
+        # **Move slider lower and make it bigger**
+        ax_slider = plt.axes([0.2, 0.05, 0.6, 0.04], facecolor='lightgray')
+        slider = Slider(ax_slider, "Iteration", 0, len(self.history) - 1, valinit=0, valstep=1)
+        slider.poly.set_linewidth(50)
+
+        # **Fix dragging issue by properly linking update function**
+        slider.on_changed(lambda val: update_plot(slider.val))  # Explicitly use slider.val
+
+        update_plot(0)  # Initialize
+
+        plt.show(block=True)  # Ensure the slider is interactive

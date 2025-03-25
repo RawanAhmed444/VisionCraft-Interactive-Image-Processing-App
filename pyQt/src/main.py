@@ -23,100 +23,136 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
-class ActiveContourVisualizationWidget(QWidget):
-    """A separate window to visualize Active Contour evolution and energy maps."""
+from PyQt5.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout, QGridLayout,
+                             QPushButton, QSlider, QScrollArea, QTabWidget)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage
+import numpy as np
+import cv2
 
-    def __init__(self,parent, processor = None):
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSlider,
+    QGridLayout, QScrollArea
+)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+import numpy as np
+import cv2
+
+class VisualizationPanel(QWidget):
+    def __init__(self, parent=None, processor=None):
         super().__init__(parent)
         self.processor = processor
         self.history = []
-        self.current_index = 0
         self.init_ui()
 
     def init_ui(self):
-        """Initialize the UI components."""
-        self.setWindowTitle("Active Contour Visualization")
-        self.setGeometry(100, 100, 1200, 800)
-
-        # Create a tab widget to organize visualizations
-        self.tab_widget = QTabWidget()
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.tab_widget)
-
-        # Add tabs for different visualizations
+        main_layout = QVBoxLayout(self)
+        
+        # Scroll Area for Visualization Grid
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        
+        container = QWidget()
+        grid_layout = QGridLayout(container)
+        
         self.original_image_label = QLabel()
+        self.original_image_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.original_image_label, 0, 0)
+        
         self.internal_energy_label = QLabel()
+        self.internal_energy_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.internal_energy_label, 0, 1)
+        
         self.external_energy_label = QLabel()
+        self.external_energy_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.external_energy_label, 1, 0)
+        
         self.contour_evolution_label = QLabel()
-
-        self.add_tab(self.original_image_label, "Original Image")
-        self.add_tab(self.internal_energy_label, "Internal Energy")
-        self.add_tab(self.external_energy_label, "External Energy")
-        self.add_tab(self.contour_evolution_label, "Contour Evolution")
-
-        # Slider to navigate through iterations
+        self.contour_evolution_label.setAlignment(Qt.AlignCenter)
+        grid_layout.addWidget(self.contour_evolution_label, 1, 1)
+        
+        scroll_area.setWidget(container)
+        main_layout.addWidget(scroll_area)
+        
+        # Navigation controls
+        control_layout = QHBoxLayout()
+        
+        self.prev_button = QPushButton("Previous")
+        self.prev_button.clicked.connect(self.prev_iteration)
+        
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(100)
-        self.slider.setValue(50)
+        self.slider.setValue(0)
         self.slider.valueChanged.connect(self.update_visualization)
-
-        layout.addWidget(self.slider)
-
-    def add_tab(self, widget, title):
-        """Adds a new tab with the given widget and title."""
-        tab = QWidget()
-        tab_layout = QVBoxLayout(tab)
-        tab_layout.addWidget(widget)
-        self.tab_widget.addTab(tab, title)
-
+        
+        self.next_button = QPushButton("Next")
+        self.next_button.clicked.connect(self.next_iteration)
+        
+        self.iteration_label = QLabel("Iteration: 0/0")
+        
+        control_layout.addWidget(self.prev_button)
+        control_layout.addWidget(self.slider)
+        control_layout.addWidget(self.next_button)
+        control_layout.addWidget(self.iteration_label)
+        
+        main_layout.addLayout(control_layout)
+    
     def set_history(self, history):
-        """
-        Receives contour evolution history from the processor and updates visualization.
-        """
         self.history = history
-        print(len(history))
-        self.slider.setMaximum(len(history) - 1)
-        self.update_visualization()
+        if history:
+            self.slider.setMaximum(len(history) - 1)
+            self.iteration_label.setText(f"Iteration: 0/{len(history)-1}")
+            self.update_visualization()
 
     def update_visualization(self):
-        """Updates the displayed images based on the current iteration index."""
         if not self.history:
             return
 
         idx = self.slider.value()
         data = self.history[idx]
-        print(data)
-
-        # Convert images to QPixmap format and update QLabel widgets
+        self.iteration_label.setText(f"Iteration: {idx}/{len(self.history)-1}")
+        
         self.original_image_label.setPixmap(self.numpy_to_pixmap(self.processor.image))
         self.internal_energy_label.setPixmap(self.numpy_to_pixmap(data["internal_energy"], cmap="hot"))
         self.external_energy_label.setPixmap(self.numpy_to_pixmap(data["external_energy"], cmap="cool"))
         self.contour_evolution_label.setPixmap(self.draw_contour(data["snake"]))
-
+    
+    def prev_iteration(self):
+        if self.slider.value() > 0:
+            self.slider.setValue(self.slider.value() - 1)
+    
+    def next_iteration(self):
+        if self.slider.value() < self.slider.maximum():
+            self.slider.setValue(self.slider.value() + 1)
+    
     def numpy_to_pixmap(self, array, cmap="gray"):
-
-        if len(array.shape) == 2:  # Grayscale image
-            array = (255 * (array - array.min()) / (array.max() - array.min())).astype(np.uint8)
-            height, width = array.shape
-            qimage = QImage(array.data, width, height, QImage.Format_Grayscale8)
-            return QPixmap.fromImage(qimage)
-        return QPixmap()
-
+        if array is None or array.size == 0:
+            return QPixmap()
+        
+        array = (255 * (array - array.min()) / (array.max() - array.min())).astype(np.uint8)
+        
+        if cmap == "hot":
+            array = cv2.applyColorMap(array, cv2.COLORMAP_HOT)
+        elif cmap == "cool":
+            array = cv2.applyColorMap(array, cv2.COLORMAP_COOL)
+        
+        height, width = array.shape[:2]
+        bytes_per_line = 3 * width
+        qimage = QImage(array.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
+        return QPixmap.fromImage(qimage)
+    
     def draw_contour(self, snake):
-        """Draws the active contour over the original image."""
+        if snake is None or len(snake) == 0:
+            return QPixmap()
+        
         img_copy = cv2.cvtColor(self.processor.image.copy(), cv2.COLOR_GRAY2BGR)
-
-        # Draw contour in red
+        pts = np.array(snake, np.int32).reshape((-1,1,2))
+        cv2.polylines(img_copy, [pts], True, (0,0,255), 1)
         for point in snake:
-            x, y = int(point[0]), int(point[1])
-            cv2.circle(img_copy, (x, y), 1, (0, 0, 255), -1)
-
-        return self.numpy_to_pixmap(cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY))
-
-
-
-
+            cv2.circle(img_copy, tuple(point.astype(int)), 2, (0, 0, 255), -1)
+        return self.numpy_to_pixmap(img_copy)
 
 class ActiveContourTab(QWidget):
     def __init__(self, parent=None):
@@ -135,30 +171,30 @@ class ActiveContourTab(QWidget):
 
         self.centerY = QSpinBox()
         self.centerY.setRange(0, 1000)
-        self.centerY.setValue(250)
+        self.centerY.setValue(200)
 
         self.radius = QSpinBox()
         self.radius.setRange(1, 500)
-        self.radius.setValue(50)
+        self.radius.setValue(200)
 
         self.alpha = QDoubleSpinBox()
         self.alpha.setRange(0.0, 10.0)
         self.alpha.setSingleStep(0.1)
-        self.alpha.setValue(0.1)
+        self.alpha.setValue(0.5)
 
         self.beta = QDoubleSpinBox()
         self.beta.setRange(0.0, 10.0)
         self.beta.setSingleStep(0.1)
-        self.beta.setValue(0.1)
+        self.beta.setValue(0.7)
 
         self.gamma = QDoubleSpinBox()
         self.gamma.setRange(0.0, 10.0)
         self.gamma.setSingleStep(0.1)
-        self.gamma.setValue(0.1)
+        self.gamma.setValue(1)
 
         self.iterations = QSpinBox()
-        self.iterations.setRange(1, 1000)
-        self.iterations.setValue(100)
+        self.iterations.setRange(1, 10000)
+        self.iterations.setValue(1000)
 
         self.points = QSpinBox()
         self.points.setRange(1, 10000)
@@ -166,10 +202,11 @@ class ActiveContourTab(QWidget):
         
         self.w_edge = QSpinBox()
         self.w_edge.setRange(1, 10)
-        self.w_edge.setValue(100)
+        self.w_edge.setValue(10)
         
         self.convergence = QSpinBox()
         self.convergence.setRange(0, 1)
+        self.beta.setSingleStep(0.01)
         self.convergence.setValue(0)
         
         self.btn_run_snake = QPushButton("Run Active Contour")
@@ -978,20 +1015,26 @@ class MainWindow(QMainWindow):
         # Initialize the snake
         snake, history = self.processors["active_contour"].detect_contour(**contour_params)
 
-        plt.imshow(self.image, cmap='gray')
-        plt.plot(snake[:, 0], snake[:, 1], 'r-', label="Snake Contour")
-        plt.title("Active Contour Result")
-        plt.legend()
-        plt.show()
-        # # Ensure the viewer exists before setting history
-        # if not hasattr(self, 'active_contour_viewer'):
-        #     self.active_contour_viewer = ActiveContourVisualizationWidget(self,self.processors["active_contour"])
-        #     self.image_display_layout.addWidget(self.active_contour_viewer)  # Add widget to layout
+        self.processors["active_contour"].visualize_contour()
 
-        # # Update visualization with the contour history
+        # Clear the layout before adding a new widget
+        # while self.image_display_layout.count():
+        #     item = self.image_display_layout.takeAt(0)
+        #     if item.widget():
+        #         item.widget().deleteLater()
+
+        # Create and add the VisualizationPanel
+        # self.active_contour_viewer = VisualizationPanel(self, self.processors["active_contour"])
         # self.active_contour_viewer.set_history(history)
-        # self.active_contour_viewer.show()  # Ensure the widget is displayed 
-            
+
+        # self.image_display_layout.addWidget(self.active_contour_viewer)  # Add widget to layout
+        # plt.imshow(self.image, cmap='gray')
+        # plt.plot(snake[:, 0], snake[:, 1], 'r-', label="Snake Contour")
+        # plt.title("Active Contour Result")
+        # plt.legend()
+        # plt.show()
+        # Ensure the widget is displayed
+        # self.active_contour_viewer.show()
 
 
     def init_ui(self, main_layout):
