@@ -29,21 +29,18 @@ def lines_nms(lines, accumulator,rhos, thetas,  theta_thresh=5):
 
     lines = [(rhos[idx[0]], thetas[idx[1]]) for idx in lines]
     
-    # Sort lines by accumulator votes (descending order)
     lines = sorted(lines, key=lambda line: accumulator[int(np.where(rhos == line[0])[0][0]), int(np.where(thetas == line[1])[0][0])], reverse=True)
 
     selected_lines = []
-    suppressed = set()  # Track suppressed indices
+    suppressed = set()  
 
     for i, (rho1, theta1) in enumerate(lines):
         if i in suppressed:
             continue
-
         selected_lines.append((rho1, theta1))
-
         for j, (rho2, theta2) in enumerate(lines[i+1:], start=i+1):
             if np.abs(float(theta1) - float(theta2)) < theta_thresh:
-                suppressed.add(j)  # Suppress similar angle lines
+                suppressed.add(j) 
 
     return selected_lines
 
@@ -126,30 +123,23 @@ def detect_lines(image=None, num_rho=180, num_theta=180, blur_ksize=5, low_thres
         output_image: The image with detected lines drawn.
     '''
     
-    # Apply Canny Edge Detection
     edged_image = detect_edges_cv(image, low_threshold=low_threshold, high_threshold=high_threshold)
 
-    # Image dimensions
     height, width = edged_image.shape[:2]
     half_height, half_width = height / 2, width / 2
 
-    # Calculate diagonal length and steps (resolution)
     diagonal = int(math.sqrt(height**2 + width**2))
     dtheta = 180 / num_theta
     drho = (2 * diagonal) / num_rho
 
-    # Create theta and rho ranges
     thetas = np.arange(0, 180, step=dtheta)
     rhos = np.arange(-diagonal, diagonal, step=drho)
     
-    # Initialize accumulator
     accumulator = np.zeros((len(rhos), len(thetas)))
     
-    # Precompute trig values
     cos_thetas = np.cos(np.deg2rad(thetas))
     sin_thetas = np.sin(np.deg2rad(thetas))
 
-    # Hough Transform
     for y in range(height):
         for x in range(width):
             if edged_image[y, x] != 0:
@@ -159,20 +149,14 @@ def detect_lines(image=None, num_rho=180, num_theta=180, blur_ksize=5, low_thres
                     rho_idx = np.argmin(abs(rhos - rho))
                     accumulator[rho_idx][theta_idx] += 1
 
-    # Find max value in accumulator
     max_val = np.max(accumulator)
     threshold = max_val * hough_threshold_ratio
     
-    # Detect lines from accumulator (store indices)
     detected_lines = [(y, x) for y in range(accumulator.shape[0]) for x in range(accumulator.shape[1]) if accumulator[y, x] > threshold]
     
-    # Apply Non-Maximum Suppression
     filtered_lines = lines_nms(detected_lines, accumulator, rhos, thetas)
     
-    # Convert indices to actual rho and theta values
-    # filtered_lines = [(rhos[int(idx[0])], thetas[int(idx[1])]) for idx in filtered_lines if 0 <= int(idx[0]) < len(rhos) and 0 <= int(idx[1]) < len(thetas)]
 
-    # Draw filtered lines on the image
     output_image = image.copy()
     for rho, theta in filtered_lines:
         a = np.cos(np.deg2rad(theta))
@@ -200,15 +184,15 @@ def compute_hough_circle_votes(edges, accumulator, radius_range):
     min_radius, max_radius = radius_range
     edge_pixels = np.argwhere(edges > 0)
 
-    theta = np.deg2rad(np.arange(0, 360, 5))  # Precompute angles
+    theta = np.deg2rad(np.arange(0, 360, 5))  
     cos_t, sin_t = np.cos(theta), np.sin(theta)
 
     for y, x in edge_pixels:
         for r in range(min_radius, max_radius):
-            a = (x - r * cos_t).astype(int)  # Compute all a values at once
-            b = (y - r * sin_t).astype(int)  # Compute all b values at once
+            a = (x - r * cos_t).astype(int)  
+            b = (y - r * sin_t).astype(int)  
             
-            valid_idx = (0 <= a) & (a < w) & (0 <= b) & (b < h)  # Filter valid indices
+            valid_idx = (0 <= a) & (a < w) & (0 <= b) & (b < h)
             np.add.at(accumulator, (b[valid_idx], a[valid_idx], r - min_radius), 1)
     return accumulator
 
@@ -216,16 +200,15 @@ def non_maximum_suppression(circles, accumulator, min_dist=40, r_min = 10):
     """Applies Non-Maximum Suppression to remove overlapping circles based on Euclidean distance."""
     filtered_circles = []
     
-    # Sort circles by vote strength (higher votes first)
     sorted_circles = sorted(circles, key=lambda c: -accumulator[c[1], c[0], c[2] - r_min])
     
     for x, y, r in sorted_circles:
         keep = True
         for x2, y2, r2 in filtered_circles:
-            dist = np.linalg.norm(np.array((x, y)) - np.array((x2, y2)))  # Euclidean distance
-            if dist < min_dist + abs(r - r2):  # Consider radius difference
+            dist = np.linalg.norm(np.array((x, y)) - np.array((x2, y2)))  
+            if dist < min_dist + abs(r - r2):  
                 keep = False
-                break  # Skip adding this circle if it's too close
+                break  
         if keep:
             filtered_circles.append((x, y, r))
     
@@ -238,9 +221,8 @@ def extract_circle_peaks(accumulator, radius_range, threshold_ratio=0.5, min_dis
     threshold = threshold_ratio * max_votes
     peak_indices = np.argwhere(accumulator > threshold)
     circles = [(a, b, r + min_radius) for b, a, r in peak_indices]
-
-    # Apply Non-Maximum Suppression
     return non_maximum_suppression(circles, accumulator, min_dist=min_dist, r_min= min_radius)
+
 def draw_detected_circles(image, detected_circles):
     """Draws detected circles on the original image."""
     output_image = image.copy()
@@ -264,40 +246,33 @@ def visualize_results(gray_image, edges, accumulator, detected_circles):
     """
     fig, axs = plt.subplots(2, 2, figsize=(12, 12))
 
-    # Plot 1: Original Grayscale Image
     axs[0, 0].imshow(gray_image, cmap='gray')
     axs[0, 0].set_title("Original Image")
     axs[0, 0].axis("off")
 
-    # Plot 2: Edge Detection Result
     axs[0, 1].imshow(edges, cmap='gray')
     axs[0, 1].set_title("Edge Detection")
     axs[0, 1].axis("off")
 
-    # Plot 3: Hough Accumulator (Summed Over Radius Dimension)
     accumulator_projection = np.sum(accumulator, axis=2)  # Sum over radius
     axs[1, 0].imshow(accumulator_projection, cmap='hot', extent=[0, gray_image.shape[1], gray_image.shape[0], 0])
     axs[1, 0].set_title("Hough Accumulator (Summed Over Radii)")
     axs[1, 0].axis("off")
 
-    # Plot 4: Final Detected Circles
     axs[1, 1].imshow(gray_image, cmap='gray')
     axs[1, 1].set_title("Detected Circles")
     axs[1, 1].axis("off")
 
-    # Draw detected circles
     for x, y, r in detected_circles:
         circle = plt.Circle((x, y), r, color='red', fill=False, linewidth=2)
         axs[1, 1].add_patch(circle)
 
     plt.tight_layout()
 
-    # Save figure to a buffer
     buf = BytesIO()
     plt.savefig(buf, format="png")
     plt.close(fig)
 
-    # Convert buffer to image
     buf.seek(0)
     image = np.frombuffer(buf.getvalue(), dtype=np.uint8)
     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
@@ -311,7 +286,7 @@ def hough_circle_detection(image, **kwargs):
     r_max = kwargs.get('r_max', 50)
 
     radius_range=(r_min, r_max)
-    edges = detect_edges(image, **edge_param)
+    edges = detect_edges_cv(image, **edge_param)
     accumulator = initialize_hough_circle_space(edges, r_min, r_max)
     print('accumlator done!!')
     accumulator = compute_hough_circle_votes(edges, accumulator, radius_range)
@@ -332,21 +307,16 @@ def draw_ellipses(image, ellipses):
     for (center, (p1_major, p2_major), (p1_minor, p2_minor)) in ellipses:
         xc, yc = center
 
-        # Compute major and minor axes
         major_length = np.linalg.norm(np.array(p1_major) - np.array(p2_major))
         minor_length = np.linalg.norm(np.array(p1_minor) - np.array(p2_minor))
 
-        # Ensure valid axis values
-        a = max(1, int(major_length / 2))  # Major axis radius
-        b = max(1, int(minor_length / 2))  # Minor axis radius
+        a = max(1, int(major_length / 2))  
+        b = max(1, int(minor_length / 2))  
 
-        # Compute ellipse angle
         angle = np.arctan2(p2_major[1] - p1_major[1], p2_major[0] - p1_major[0])* 180.0 / np.pi
-        # Draw the ellipse
         cv2.ellipse(output, (yc, xc), (a, b), 90-angle, 0, 360, (255, 0, 0), 1)
-        cv2.line(output, (p1_major[1], p1_major[0]), (p2_major[1], p2_major[0]), (255, 0, 0), 1)  # Major axis
-        cv2.line(output, (p1_minor[1], p1_minor[0]), (p2_minor[1], p2_minor[0]), (0, 0, 255), 1)  # Minor axis
-        # Draw center point
+        cv2.line(output, (p1_major[1], p1_major[0]), (p2_major[1], p2_major[0]), (255, 0, 0), 1)  
+        cv2.line(output, (p1_minor[1], p1_minor[0]), (p2_minor[1], p2_minor[0]), (0, 0, 255), 1)  
         cv2.circle(output, (yc, xc), 3, (0, 255, 0), -1)
 
     return output
@@ -422,14 +392,13 @@ def compute_hough_ellipse_focus(edges, min_d=10, max_d=200, step_size=10):
     edge_points = np.argwhere(edges > 0)
     accumulator = defaultdict(list)
     focus_pairs = []
-    # Iterate over pairs of edge points as possible foci
     for (x1, y1), (x2, y2) in combinations(edge_points, 2):
         f1, f2 = (x1, y1), (x2, y2)
         focus_pairs.append((f1, f2))
         center = ((x1 + x2)//2 , (y1 + y2)//2)
         distance = np.linalg.norm(np.array(f1) - np.array(f2))
         if min_d<distance  and distance <max_d:
-            accumulator[center].append(((x1, y1), (x2, y2)))  # Append distance to the list for this center
+            accumulator[center].append(((x1, y1), (x2, y2))) 
 
     return accumulator, focus_pairs
 
@@ -448,34 +417,23 @@ def extract_best_ellipses(accumulator, threshold_factor=0.5, tolerance=20):
     """
     if not accumulator:
         return []
-
-    # Find the maximum list length
     max_length = max(len(pairs) for pairs in accumulator.values())
-
-    # Compute the threshold length
     threshold_length = threshold_factor * max_length
-
     best_ellipses = []
 
-    # Iterate over centers and select those that meet the threshold
     for center, pairs in accumulator.items():
         if len(pairs) >= threshold_length:
-            # Compute distances for each pair
             distances = [(p1, p2, np.linalg.norm(np.array(p1) - np.array(p2))) for p1, p2 in pairs]
 
-            # Find the pair with max and min distances
             max_pair = max(distances, key=lambda x: x[2])  # (p1, p2, max_distance)
             min_pair = min(distances, key=lambda x: x[2])  # (p1, p2, min_distance)
 
-            # Compute vectors
             major_vector = np.array(max_pair[1]) - np.array(max_pair[0])
             minor_vector = np.array(min_pair[1]) - np.array(min_pair[0])
 
-            # Compute angle between major and minor axes
             dot_product = np.dot(major_vector, minor_vector)
             angle = np.degrees(np.arccos(dot_product / (np.linalg.norm(major_vector) * np.linalg.norm(minor_vector))))
 
-            # Check if the angle is close to 90 degrees
             if 90 - tolerance <= angle <= 90 + tolerance:
                 best_ellipses.append((center, max_pair[:2], min_pair[:2]))  # Only take point pairs, not distances
 
