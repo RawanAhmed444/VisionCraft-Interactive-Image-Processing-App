@@ -67,8 +67,8 @@ def apply_hysteresis(strong_edges, weak_edges, max_edge_val=255):
 
     while stack:
         y, x = stack.pop()
-        for dy in [-1, 0, 1]:
-            for dx in [-1, 0, 1]:
+        for dy in [-2,-1, 0, 1,2]:
+            for dx in[-2,-1, 0, 1,2]:
                 ny, nx = y + dy, x + dx
                 if 0 <= ny < height and 0 <= nx < width and weak_edges[ny, nx] != 0:
                     final_edges[ny, nx] = max_edge_val
@@ -120,7 +120,20 @@ def prewitt_edge_detection(image, threshold, value):
     G = np.uint8(magnitude(Gx, Gy))
     G = globalthresholding(G, threshold, value)
     return G
+def prewitt_gradients(image):
+    gray = convert_to_grayscale(image)
+    kernel_x = np.array([[-1, 0, 1],
+                         [-1, 0, 1],
+                         [-1, 0, 1]])
+    kernel_y = np.array([[-1, -1, -1],
+                         [ 0,  0,  0],
+                         [ 1,  1,  1]])
+    Gx = convolve(gray, kernel_x)
+    Gy = convolve(gray, kernel_y)
     
+    Gx = np.float32(Gx)
+    Gy = np.float32(Gy)
+    return Gx, Gy
   
 def roberts_edge_detection(image):
     """
@@ -137,11 +150,26 @@ def roberts_edge_detection(image):
     Gx = convolve(gray, kernel_x)
     Gy = convolve(gray, kernel_y)
     return np.int8(magnitude(Gx, Gy))
-
-def canny_edge_detection(image, low_threshold=10, high_threshold=30, max_edge_val=255, min_edge_val=0):
+def roberts_gradients(image):
+    """
+    Detects edges using the Roberts operator.
+    
+    :param image: Input BGR or grayscale image.
+    :return: Roberts edge map.
+    """
     gray = convert_to_grayscale(image)
-    smooth = apply_gaussian_filter(gray)
-    Gx, Gy = compute_sobel_gradients(smooth)
+    kernel_x = np.array([[1, 0],
+                         [0, -1]])
+    kernel_y = np.array([[0, 1],
+                         [-1, 0]])
+    Gx = convolve(gray, kernel_x)
+    Gy = convolve(gray, kernel_y)
+    return Gx, Gy
+    
+def canny_edge_detection_no_norm(image, low_threshold=10, high_threshold=30, max_edge_val=255, min_edge_val=20):
+    gray = convert_to_grayscale(image)
+    # smooth = apply_gaussian_filter(gray)
+    Gx, Gy = compute_sobel_gradients(gray)
     G = magnitude(Gx, Gy)
     G_normalized = np.uint8(G / G.max() * 255)
 

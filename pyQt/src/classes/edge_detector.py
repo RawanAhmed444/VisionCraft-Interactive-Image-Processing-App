@@ -2,15 +2,15 @@ import cv2
 import numpy as np
 from functions.edge_functions import (
     sobel_edge_detection,
-    canny_edge_detection,
+    canny_edge_detection_no_norm,
     prewitt_edge_detection,
     roberts_edge_detection,
     smooth_image
 )
-
+from functions.canny import canny_edge_detection
 from functions.hough_transform_functions import(
     detect_lines,
-    hough_line_detection,
+
     detect_circles,
     hough_circle_detection,
     hough_ellipse_detection
@@ -60,7 +60,7 @@ class EdgeDetector:
         elif detector_method == 'canny':
             # Filter kwargs to only include valid arguments for detect_canny
             valid_kwargs = {k: v for k, v in kwargs.items() if k in ['low_threshold', 'high_threshold', 'max_edge_val', 'min_edge_val']}
-            return self.detect_canny(**valid_kwargs)
+            return canny_edge_detection(image = self.image, **valid_kwargs)
         elif detector_method == 'prewitt':
             # Filter kwargs to only include valid arguments for detect_prewitt
             valid_kwargs = {k: v for k, v in kwargs.items() if k in ['threshold', 'value']}
@@ -206,12 +206,12 @@ class EdgeDetector:
     def detect_shape(self, shape_type = 'line', **kwargs):
         if shape_type == 'line':
             valid_kwargs = {k: v for k, v in kwargs.items() if k in ['num_rho', 'num_theta', 'blur_ksize', 'low_threshold', 'high_threshold', 'hough_threshold_ratio']}
-            return hough_line_detection(self.image, **valid_kwargs)
+            return detect_lines(self.image, **valid_kwargs)
         elif shape_type == 'circle':
             valid_kwargs = {k: v for k, v in kwargs.items() if k in ['r_min', 'r_max', 'delta_r', 'num_thetas','blur_ksize', 'min_edge_threshold', 'max_edge_threshold', 'bin_threshold']}
             return hough_circle_detection(self.image, **valid_kwargs)
         elif shape_type == 'ellipse':
-            valid_kwargs =  {k: v for k, v in kwargs.items() if k in ['min_d', 'max_d', 'step_size', 'blur_ksize', 'low_threshold', 'high_threshold', 'hough_threshold_ratio']}
+            valid_kwargs =  {k: v for k, v in kwargs.items() if k in ['min_d', 'max_d', 'step_size', 'blur_ksize', 'low_threshold', 'high_threshold', 'threshold_factor']}
             return hough_ellipse_detection(self.image, **valid_kwargs)
 
     

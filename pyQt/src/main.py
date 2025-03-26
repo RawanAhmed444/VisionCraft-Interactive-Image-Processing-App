@@ -39,121 +39,6 @@ from PyQt5.QtGui import QPixmap
 import numpy as np
 import cv2
 
-class VisualizationPanel(QWidget):
-    def __init__(self, parent=None, processor=None):
-        super().__init__(parent)
-        self.processor = processor
-        self.history = []
-        self.init_ui()
-
-    def init_ui(self):
-        main_layout = QVBoxLayout(self)
-        
-        # Scroll Area for Visualization Grid
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        
-        container = QWidget()
-        grid_layout = QGridLayout(container)
-        
-        self.original_image_label = QLabel()
-        self.original_image_label.setAlignment(Qt.AlignCenter)
-        grid_layout.addWidget(self.original_image_label, 0, 0)
-        
-        self.internal_energy_label = QLabel()
-        self.internal_energy_label.setAlignment(Qt.AlignCenter)
-        grid_layout.addWidget(self.internal_energy_label, 0, 1)
-        
-        self.external_energy_label = QLabel()
-        self.external_energy_label.setAlignment(Qt.AlignCenter)
-        grid_layout.addWidget(self.external_energy_label, 1, 0)
-        
-        self.contour_evolution_label = QLabel()
-        self.contour_evolution_label.setAlignment(Qt.AlignCenter)
-        grid_layout.addWidget(self.contour_evolution_label, 1, 1)
-        
-        scroll_area.setWidget(container)
-        main_layout.addWidget(scroll_area)
-        
-        # Navigation controls
-        control_layout = QHBoxLayout()
-        
-        self.prev_button = QPushButton("Previous")
-        self.prev_button.clicked.connect(self.prev_iteration)
-        
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(100)
-        self.slider.setValue(0)
-        self.slider.valueChanged.connect(self.update_visualization)
-        
-        self.next_button = QPushButton("Next")
-        self.next_button.clicked.connect(self.next_iteration)
-        
-        self.iteration_label = QLabel("Iteration: 0/0")
-        
-        control_layout.addWidget(self.prev_button)
-        control_layout.addWidget(self.slider)
-        control_layout.addWidget(self.next_button)
-        control_layout.addWidget(self.iteration_label)
-        
-        main_layout.addLayout(control_layout)
-    
-    def set_history(self, history):
-        self.history = history
-        if history:
-            self.slider.setMaximum(len(history) - 1)
-            self.iteration_label.setText(f"Iteration: 0/{len(history)-1}")
-            self.update_visualization()
-
-    def update_visualization(self):
-        if not self.history:
-            return
-
-        idx = self.slider.value()
-        data = self.history[idx]
-        self.iteration_label.setText(f"Iteration: {idx}/{len(self.history)-1}")
-        
-        self.original_image_label.setPixmap(self.numpy_to_pixmap(self.processor.image))
-        self.internal_energy_label.setPixmap(self.numpy_to_pixmap(data["internal_energy"], cmap="hot"))
-        self.external_energy_label.setPixmap(self.numpy_to_pixmap(data["external_energy"], cmap="cool"))
-        self.contour_evolution_label.setPixmap(self.draw_contour(data["snake"]))
-    
-    def prev_iteration(self):
-        if self.slider.value() > 0:
-            self.slider.setValue(self.slider.value() - 1)
-    
-    def next_iteration(self):
-        if self.slider.value() < self.slider.maximum():
-            self.slider.setValue(self.slider.value() + 1)
-    
-    def numpy_to_pixmap(self, array, cmap="gray"):
-        if array is None or array.size == 0:
-            return QPixmap()
-        
-        array = (255 * (array - array.min()) / (array.max() - array.min())).astype(np.uint8)
-        
-        if cmap == "hot":
-            array = cv2.applyColorMap(array, cv2.COLORMAP_HOT)
-        elif cmap == "cool":
-            array = cv2.applyColorMap(array, cv2.COLORMAP_COOL)
-        
-        height, width = array.shape[:2]
-        bytes_per_line = 3 * width
-        qimage = QImage(array.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
-        return QPixmap.fromImage(qimage)
-    
-    def draw_contour(self, snake):
-        if snake is None or len(snake) == 0:
-            return QPixmap()
-        
-        img_copy = cv2.cvtColor(self.processor.image.copy(), cv2.COLOR_GRAY2BGR)
-        pts = np.array(snake, np.int32).reshape((-1,1,2))
-        cv2.polylines(img_copy, [pts], True, (0,0,255), 1)
-        for point in snake:
-            cv2.circle(img_copy, tuple(point.astype(int)), 2, (0, 0, 255), -1)
-        return self.numpy_to_pixmap(img_copy)
-
 class ActiveContourTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -410,13 +295,6 @@ class HoughTransformTab(QWidget):
         self.aMax.setRange(1, 500)
         self.aMax.setValue(100)
 
-        self.bMin = QSpinBox()
-        self.bMin.setRange(1, 500)
-        self.bMin.setValue(10)
-
-        self.bMax = QSpinBox()
-        self.bMax.setRange(1, 500)
-        self.bMax.setValue(50)
 
         self.thetaStep = QSpinBox()
         self.thetaStep.setRange(1, 180)
@@ -432,27 +310,18 @@ class HoughTransformTab(QWidget):
         self.minDist.setValue(20)
 
         self.btn_detect_ellipses = QPushButton("Detect Ellipses")
-        # self.btn_detect_ellipses.clicked.connect(parent.detect_ellipses)
+        self.btn_detect_ellipses.clicked.connect(parent.detect_ellipses)
 
         a_min_layout = QHBoxLayout()
-        a_min_layout.addWidget(QLabel("Min Semi-Major Axis (aMin)"))
+        a_min_layout.addWidget(QLabel("Min Major Axis (aMin)"))
         a_min_layout.addWidget(self.aMin)
         ellipse_layout.addLayout(a_min_layout)
 
         a_max_layout = QHBoxLayout()
-        a_max_layout.addWidget(QLabel("Max Semi-Major Axis (aMax)"))
+        a_max_layout.addWidget(QLabel("Max Major Axis (aMax)"))
         a_max_layout.addWidget(self.aMax)
         ellipse_layout.addLayout(a_max_layout)
 
-        b_min_layout = QHBoxLayout()
-        b_min_layout.addWidget(QLabel("Min Semi-Minor Axis (bMin)"))
-        b_min_layout.addWidget(self.bMin)
-        ellipse_layout.addLayout(b_min_layout)
-
-        b_max_layout = QHBoxLayout()
-        b_max_layout.addWidget(QLabel("Max Semi-Minor Axis (bMax)"))
-        b_max_layout.addWidget(self.bMax)
-        ellipse_layout.addLayout(b_max_layout)
 
         theta_step_layout = QHBoxLayout()
         theta_step_layout.addWidget(QLabel("Theta Step"))
@@ -464,10 +333,6 @@ class HoughTransformTab(QWidget):
         ellipse_threshold_ratio_layout.addWidget(self.ellipseThresholdRatio)
         ellipse_layout.addLayout(ellipse_threshold_ratio_layout)
 
-        min_dist_layout = QHBoxLayout()
-        min_dist_layout.addWidget(QLabel("Min Distance Between Ellipses"))
-        min_dist_layout.addWidget(self.minDist)
-        ellipse_layout.addLayout(min_dist_layout)
 
         ellipse_layout.addWidget(self.btn_detect_ellipses)
 
@@ -1190,6 +1055,10 @@ class MainWindow(QMainWindow):
             'r_min': self.hough_transform_tab.rMin,
             'r_max': self.hough_transform_tab.rMax,
             'num_thetas': self.hough_transform_tab.numThetas,
+            'min_d': self.hough_transform_tab.aMin,
+            'max_d': self.hough_transform_tab.aMax,
+            'step_size': self.hough_transform_tab.thetaStep,
+            'threshold_factor': self.hough_transform_tab.ellipseThresholdRatio,
             # Shared Canny Detector Parameters
             'canny_low_threshold': self.hough_transform_tab.cannyLowThreshold,
             'canny_high_threshold': self.hough_transform_tab.cannyHighThreshold,
@@ -1643,6 +1512,24 @@ class MainWindow(QMainWindow):
         
         self.modified_image = self.processors['edge_detector'].detect_shape(
             shape_type = 'circle',
+            **shape_params
+        )
+
+        self.display_image(self.modified_image)
+
+    def detect_ellipses(self):
+        """
+        Detects lines in the image using the Hough Transform based on the selected parameters from the UI.
+        """
+        if self.image is None:
+            QMessageBox.warning(self, "Warning", "Please load an image first.")
+            return
+
+        shape_params = self.params["shape_detection"]
+
+        
+        self.modified_image = self.processors['edge_detector'].detect_shape(
+            shape_type = 'ellipse',
             **shape_params
         )
 
