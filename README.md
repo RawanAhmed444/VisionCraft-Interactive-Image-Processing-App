@@ -59,7 +59,7 @@ pyQt/    # Python/PyQt application
 <!-- Add screenshots or demo images here -->
 *Main Window*
 
-![image](https://github.com/user-attachments/assets/b1e7ebbb-bfd6-423c-9154-d0655a165269) 
+![image](https://github.com/user-attachments/assets/292c209f-e657-4f6b-8697-15288b7a5dc5)
 
 *Canny Edge Detection*
 
