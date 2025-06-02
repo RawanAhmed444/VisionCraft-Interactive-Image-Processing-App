@@ -57,22 +57,29 @@ pyQt/    # Python/PyQt application
 ## Screenshots
 
 <!-- Add screenshots or demo images here -->
+*Main Window*
+
 ![image](https://github.com/user-attachments/assets/b1e7ebbb-bfd6-423c-9154-d0655a165269) 
 
-![image](https://github.com/user-attachments/assets/6cfdce7e-aa6d-4525-93fb-f17f250ebb02)
 *Canny Edge Detection*
 
-![image](https://github.com/user-attachments/assets/7c25c12e-8905-4518-9cef-60d7ab361e80)
+![image](https://github.com/user-attachments/assets/6cfdce7e-aa6d-4525-93fb-f17f250ebb02)
+
 *Line Hough Transform*
 
-![image](https://github.com/user-attachments/assets/62ba3278-3e17-4ce5-bb1f-57a49605b996)
+![image](https://github.com/user-attachments/assets/7c25c12e-8905-4518-9cef-60d7ab361e80)
+
 *Circle Hough Transform*
 
-![image](https://github.com/user-attachments/assets/11ec6655-0d3f-4896-87a5-ec520dd5b215)
+![image](https://github.com/user-attachments/assets/62ba3278-3e17-4ce5-bb1f-57a49605b996)
+
 *Ellipse Detection*
 
-![image](https://github.com/user-attachments/assets/cb544736-c29d-419b-b9ad-01f0d3f4c67b)
+![image](https://github.com/user-attachments/assets/11ec6655-0d3f-4896-87a5-ec520dd5b215)
+
 *Active Contour*
+
+![image](https://github.com/user-attachments/assets/cb544736-c29d-419b-b9ad-01f0d3f4c67b)
 
 ---
 
