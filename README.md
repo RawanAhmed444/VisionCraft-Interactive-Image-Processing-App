@@ -1,4 +1,4 @@
-# Noisy Visions - Filtering and Edge Perception Application
+# Real-time Image Studio
 
 This application is a user-friendly platform for digital image processing, built with both C++/Qt and Python/PyQt. It provides an interactive graphical interface where users can load images and experiment with a wide variety of image processing techniques. All core algorithms—including noise addition, spatial and frequency domain filtering, edge detection, thresholding, histogram analysis, hybrid image creation, geometric shape detection (lines, circles, ellipses via Hough Transform), and active contour (snake) segmentation—are implemented entirely from scratch, without relying on external libraries like OpenCV for the core processing in Python. All operations are accessible through intuitive controls, making the application suitable for both educational and research purposes in computer vision and image analysis.
 
